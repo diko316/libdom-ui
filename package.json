@@ -1,0 +1,28 @@
+{
+  "name": "libdom-ui",
+  "version": "0.0.1",
+  "description": "Lean HTML Components only using libdom",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://diko316@github.com/diko316/libdom-ui.git"
+  },
+  "keywords": [
+    "libdom",
+    "Browser",
+    "Cross-Browser",
+    "Component",
+    "HTML",
+    "XHTML",
+    "ES5"
+  ],
+  "author": "Diko Tech Slave",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/diko316/libdom-ui/issues"
+  },
+  "homepage": "https://github.com/diko316/libdom-ui#readme"
+}
