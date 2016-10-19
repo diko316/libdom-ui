@@ -1,2 +1,3 @@
 # libdom-ui
-UI Components for libdom
+Lean HTML Components only using libdom
+
