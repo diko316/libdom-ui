@@ -23,9 +23,11 @@ services:
     
     environment:
      - BUILD_MODE=production
+     - SOURCE_MOD_PATH=/opt/app-source-modification
   
     volumes:
       - ./dist:/opt/app/dist
       - .:/opt/app-source:ro
+      - .:/opt/app-source-modification:rw
 
 
