@@ -51,6 +51,6 @@
   },
   "dependencies": {
     "libcore": "0.0.9",
-    "libdom": "0.1.5"
+    "libdom": "0.1.6"
   }
 }
