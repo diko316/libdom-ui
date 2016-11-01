@@ -1,3 +1,10 @@
 'use strict';
 
-module.exports = {};
+var DOM = require("libdom"),
+    EXPORTS = {};
+
+if (DOM) {
+    
+}
+
+module.exports = EXPORTS;
