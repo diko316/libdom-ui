@@ -19,34 +19,35 @@
         __webpack_require__.p = "/assets/";
         return __webpack_require__(0);
     }([ function(module, exports, __webpack_require__) {
-        module.exports = __webpack_require__(1);
+        module.exports = __webpack_require__(2);
+    }, , function(module, exports, __webpack_require__) {
+        "use strict";
+        var DOM = __webpack_require__(3), CORE = __webpack_require__(5), rehash = CORE.rehash, EXPORTS = {};
+        if (DOM.env.browser) {
+            DOM.ui = EXPORTS;
+            try {
+                __webpack_require__(36);
+            } catch (e) {}
+            rehash(EXPORTS, __webpack_require__(40), {
+                createBus: "create",
+                bus: "bus"
+            });
+            rehash(EXPORTS, __webpack_require__(41), {});
+        }
+        module.exports = EXPORTS["default"] = EXPORTS;
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var DOM = __webpack_require__(2), EXPORTS = {};
-        if (DOM) {}
-        module.exports = EXPORTS;
-    }, function(module, exports, __webpack_require__) {
-        "use strict";
-        module.exports = __webpack_require__(3);
+        module.exports = __webpack_require__(4);
     }, function(module, exports, __webpack_require__) {
         (function(global) {
             "use strict";
-            var CORE = __webpack_require__(4), detect = __webpack_require__(13), EXPORTS = {
+            var CORE = __webpack_require__(5), detect = __webpack_require__(14), rehash = CORE.rehash, EXPORTS = {
                 env: CORE.env,
                 info: detect
             };
             var css, event, dimension, selection;
-            function applyIf(api, moduleObject, access) {
-                var hasOwn = CORE.contains;
-                var name;
-                for (name in access) {
-                    if (hasOwn(access, name)) {
-                        api[name] = moduleObject[access[name]];
-                    }
-                }
-            }
             if (detect) {
-                applyIf(EXPORTS, __webpack_require__(20), {
+                rehash(EXPORTS, __webpack_require__(21), {
                     is: "is",
                     isView: "isView",
                     contains: "contains",
@@ -57,50 +58,50 @@
                     add: "add",
                     remove: "remove"
                 });
-                applyIf(EXPORTS, css = __webpack_require__(22), {
+                rehash(EXPORTS, css = __webpack_require__(23), {
                     addClass: "add",
                     removeClass: "remove",
                     computedStyle: "computedStyle",
                     stylize: "style"
                 });
-                applyIf(EXPORTS, event = __webpack_require__(30), {
+                rehash(EXPORTS, event = __webpack_require__(31), {
                     on: "on",
                     un: "un",
                     purge: "purge",
                     dispatch: "fire"
                 });
-                applyIf(EXPORTS, dimension = __webpack_require__(31), {
+                rehash(EXPORTS, dimension = __webpack_require__(32), {
                     offset: "offset",
                     size: "size",
                     box: "box",
                     scroll: "scroll",
                     screen: "screen"
                 });
-                applyIf(EXPORTS, selection = __webpack_require__(32), {
+                rehash(EXPORTS, selection = __webpack_require__(33), {
                     highlight: "select",
                     noHighlight: "unselectable",
                     clearHighlight: "clear"
                 });
-                applyIf(EXPORTS, __webpack_require__(23), {
+                rehash(EXPORTS, __webpack_require__(24), {
                     parseColor: "parse",
                     formatColor: "stringify"
                 });
-                applyIf(EXPORTS, __webpack_require__(33), {
+                rehash(EXPORTS, __webpack_require__(34), {
                     eachDisplacement: "each",
                     animateStyle: "style"
                 });
                 css.chain = event.chain = dimension.chain = selection.chain = EXPORTS;
-            } else {}
+            }
             module.exports = global.libdom = EXPORTS["default"] = EXPORTS;
         }).call(exports, function() {
             return this;
         }());
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        module.exports = __webpack_require__(5);
+        module.exports = __webpack_require__(6);
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var DETECT = __webpack_require__(6), TYPE = __webpack_require__(8), OBJECT = __webpack_require__(9), ARRAY = __webpack_require__(10), PROCESSOR = __webpack_require__(11), EXPORTS = {
+        var DETECT = __webpack_require__(7), TYPE = __webpack_require__(9), OBJECT = __webpack_require__(10), ARRAY = __webpack_require__(11), PROCESSOR = __webpack_require__(12), EXPORTS = {
             env: DETECT
         };
         OBJECT.assign(EXPORTS, TYPE);
@@ -108,13 +109,13 @@
         OBJECT.assign(EXPORTS, ARRAY);
         OBJECT.assign(EXPORTS, PROCESSOR);
         TYPE.chain = OBJECT.chain = ARRAY.chain = PROCESSOR.chain = EXPORTS;
-        EXPORTS.Promise = __webpack_require__(12);
+        EXPORTS.Promise = __webpack_require__(13);
         module.exports = EXPORTS["default"] = EXPORTS;
     }, function(module, exports, __webpack_require__) {
         (function(global) {
             "use strict";
             var ROOT = global, doc = ROOT.document, win = ROOT.window, O = Object.prototype, toString = O.toString, A = Array.prototype, objectSignature = "[object Object]", BROWSER = !!doc && !!win && win.self === (doc.defaultView || doc.parentWindow), NODEVERSIONS = BROWSER ? false : function() {
-                return __webpack_require__(7).versions || false;
+                return __webpack_require__(8).versions || false;
             }(), CONSOLE = {}, CONSOLE_NAMES = [ "log", "info", "warn", "error", "assert" ], EXPORTS = {
                 browser: BROWSER,
                 nodejs: NODEVERSIONS && !!NODEVERSIONS.node,
@@ -125,7 +126,7 @@
             };
             var c, l;
             function nodeUserAgent() {
-                var PROCESS = __webpack_require__(7), VERSIONS = NODEVERSIONS, str = [ "Node ", VERSIONS.node, "(", PROCESS.platform, "; V8 ", VERSIONS.v8 || "unknown", "; arch ", PROCESS.arch, ")" ];
+                var PROCESS = __webpack_require__(8), VERSIONS = NODEVERSIONS, str = [ "Node ", VERSIONS.node, "(", PROCESS.platform, "; V8 ", VERSIONS.v8 || "unknown", "; arch ", PROCESS.arch, ")" ];
                 return str.join("");
             }
             function empty() {}
@@ -292,7 +293,7 @@
         };
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var DETECTED = __webpack_require__(6), validSignature = DETECTED.validSignature, O = Object.prototype, toString = O.toString, isSignature = validSignature ? objectSignature : ieObjectSignature;
+        var DETECTED = __webpack_require__(7), validSignature = DETECTED.validSignature, O = Object.prototype, toString = O.toString, isSignature = validSignature ? objectSignature : ieObjectSignature;
         function objectSignature(subject) {
             return toString.call(subject);
         }
@@ -347,6 +348,7 @@
         var O = Object.prototype, EXPORTS = {
             each: each,
             assign: assign,
+            rehash: assignProperties,
             contains: contains,
             buildInstance: buildInstance
         };
@@ -361,6 +363,15 @@
         }
         function apply(value, name) {
             this[name] = value;
+        }
+        function assignProperties(target, source, access) {
+            var context = [ target, source ];
+            each(access, applyProperties, context);
+            context = context[0] = context[1] = null;
+            return EXPORTS;
+        }
+        function applyProperties(value, name) {
+            this[0][name] = this[1][value];
         }
         function each(subject, handler, scope) {
             var hasOwn = O.hasOwnProperty;
@@ -387,7 +398,7 @@
         module.exports = EXPORTS;
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var DETECT = __webpack_require__(6), OBJECT = __webpack_require__(9), A = Array.prototype, EXPORTS = {};
+        var DETECT = __webpack_require__(7), OBJECT = __webpack_require__(10), A = Array.prototype, EXPORTS = {};
         function indexOf(subject) {
             var array = this, l = array.length, c = -1;
             for (;l--; ) {
@@ -484,7 +495,7 @@
     }, function(module, exports, __webpack_require__) {
         (function(global) {
             "use strict";
-            var TYPE = __webpack_require__(8), G = global, NAME_RE = /^((before|after)\:)?([a-zA-Z0-9\_\-\.]+)$/, POSITION_BEFORE = 1, POSITION_AFTER = 2, RUNNERS = {}, EXPORTS = {
+            var TYPE = __webpack_require__(9), G = global, NAME_RE = /^((before|after)\:)?([a-zA-Z0-9\_\-\.]+)$/, POSITION_BEFORE = 1, POSITION_AFTER = 2, RUNNERS = {}, EXPORTS = {
                 register: set,
                 run: run,
                 setAsync: G.setImmediate,
@@ -564,7 +575,7 @@
     }, function(module, exports, __webpack_require__) {
         (function(global) {
             "use strict";
-            var TYPE = __webpack_require__(8), OBJECT = __webpack_require__(9), PROCESSOR = __webpack_require__(11), FUNCTION = Function, slice = Array.prototype.slice, G = global, INDEX_STATUS = 0, INDEX_DATA = 1, INDEX_PENDING = 2;
+            var TYPE = __webpack_require__(9), OBJECT = __webpack_require__(10), PROCESSOR = __webpack_require__(12), FUNCTION = Function, slice = Array.prototype.slice, G = global, INDEX_STATUS = 0, INDEX_DATA = 1, INDEX_PENDING = 2;
             function isPromise(object) {
                 return TYPE.object(object) && object.then instanceof FUNCTION;
             }
@@ -731,22 +742,22 @@
         }());
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var browser = __webpack_require__(14), EXPORTS = false;
+        var browser = __webpack_require__(15), EXPORTS = false;
         if (browser) {
             EXPORTS = {
                 browser: browser,
-                event: __webpack_require__(15),
-                dom: __webpack_require__(16),
-                css: __webpack_require__(17),
-                dimension: __webpack_require__(18),
-                selection: __webpack_require__(19)
+                event: __webpack_require__(16),
+                dom: __webpack_require__(17),
+                css: __webpack_require__(18),
+                dimension: __webpack_require__(19),
+                selection: __webpack_require__(20)
             };
         }
         module.exports = EXPORTS;
     }, function(module, exports, __webpack_require__) {
         (function(global) {
             "use strict";
-            var ROOT = global, CORE = __webpack_require__(4), ENV = CORE.env, EXPORTS = false;
+            var ROOT = global, CORE = __webpack_require__(5), ENV = CORE.env, EXPORTS = false;
             var match, ieVersion;
             if (ENV.browser) {
                 match = ENV.userAgent.match(/msie ([0-9]+\.[0-9]+)/i);
@@ -778,7 +789,7 @@
     }, function(module, exports, __webpack_require__) {
         (function(global) {
             "use strict";
-            var DETECTED = __webpack_require__(14), DOCUMENT = global.document, ROOT = DOCUMENT.documentElement, ieVersion = DETECTED.ieVersion;
+            var DETECTED = __webpack_require__(15), DOCUMENT = global.document, ROOT = DOCUMENT.documentElement, ieVersion = DETECTED.ieVersion;
             module.exports = {
                 compare: !!ROOT.compareDocumentPosition,
                 contains: !!ROOT.contains,
@@ -793,7 +804,7 @@
     }, function(module, exports, __webpack_require__) {
         (function(global) {
             "use strict";
-            var WINDOW = global, CORE = __webpack_require__(4), DOC = WINDOW.document, DIV = DOC.createElement("div"), STYLE = DIV.style, RGBA = "rgba(0,0,0,0.5)", TRANSITION_SUPPORT = [ "OTransition", "webkitTransition", "MozTransition", "transition" ];
+            var WINDOW = global, CORE = __webpack_require__(5), DOC = WINDOW.document, DIV = DOC.createElement("div"), STYLE = DIV.style, RGBA = "rgba(0,0,0,0.5)", TRANSITION_SUPPORT = [ "OTransition", "webkitTransition", "MozTransition", "transition" ];
             var name, l, EXPORTS, color;
             module.exports = EXPORTS = {
                 w3cStyle: !!WINDOW.getComputedStyle,
@@ -829,7 +840,7 @@
     }, function(module, exports, __webpack_require__) {
         (function(global) {
             "use strict";
-            var DETECTED = __webpack_require__(14), WINDOW = global.window, ieVersion = DETECTED.ieVersion;
+            var DETECTED = __webpack_require__(15), WINDOW = global.window, ieVersion = DETECTED.ieVersion;
             module.exports = {
                 screensize: typeof WINDOW.innerWidth !== "undefined",
                 pagescroll: typeof WINDOW.pageXOffset !== "undefined",
@@ -856,7 +867,7 @@
         }());
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var CORE = __webpack_require__(4), DETECTED = __webpack_require__(13), STRING = __webpack_require__(21), ORDER_TYPE_PREORDER = 1, ORDER_TYPE_POSTORDER = 2, ORDER_TYPE_LEVELORDER = 3, ERROR_INVALID_DOM = STRING[1101], ERROR_INVALID_DOM_NODE = STRING[1103], ERROR_INVALID_CSS_SELECTOR = STRING[1111], ERROR_INVALID_CALLBACK = STRING[1112], ERROR_INVALID_ELEMENT_CONFIG = STRING[1121], INVALID_DESCENDANT_NODE_TYPES = {
+        var CORE = __webpack_require__(5), DETECTED = __webpack_require__(14), STRING = __webpack_require__(22), ORDER_TYPE_PREORDER = 1, ORDER_TYPE_POSTORDER = 2, ORDER_TYPE_LEVELORDER = 3, ERROR_INVALID_DOM = STRING[1101], ERROR_INVALID_DOM_NODE = STRING[1103], ERROR_INVALID_CSS_SELECTOR = STRING[1111], ERROR_INVALID_CALLBACK = STRING[1112], ERROR_INVALID_ELEMENT_CONFIG = STRING[1121], INVALID_DESCENDANT_NODE_TYPES = {
             9: 1,
             11: 1
         }, STD_CONTAINS = notSupportedContains, MANIPULATION_HELPERS = {}, EXPORTS = {
@@ -1179,7 +1190,7 @@
         module.exports = EXPORTS.chain = EXPORTS;
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var CORE = __webpack_require__(4), SEPARATE_RE = /[ \r\n\t]*[ \r\n\t]+[ \r\n\t]*/, CAMEL_RE = /[^a-z]+[a-z]/gi, STYLIZE_RE = /^([Mm]oz|[Ww]ebkit|[Mm]s|[oO])[A-Z]/, EXPORTS = {
+        var CORE = __webpack_require__(5), SEPARATE_RE = /[ \r\n\t]*[ \r\n\t]+[ \r\n\t]*/, CAMEL_RE = /[^a-z]+[a-z]/gi, STYLIZE_RE = /^([Mm]oz|[Ww]ebkit|[Mm]s|[oO])[A-Z]/, EXPORTS = {
             camelize: camelize,
             stylize: stylize,
             addWord: addWord,
@@ -1255,7 +1266,7 @@
     }, function(module, exports, __webpack_require__) {
         (function(global) {
             "use strict";
-            var CORE = __webpack_require__(4), STRING = __webpack_require__(21), DETECTED = __webpack_require__(13), DOM = __webpack_require__(20), COLOR = __webpack_require__(23), PADDING_BOTTOM = "paddingBottom", PADDING_TOP = "paddingTop", PADDING_LEFT = "paddingLeft", PADDING_RIGHT = "paddingRight", OFFSET_LEFT = "offsetLeft", OFFSET_TOP = "offsetTop", OFFSET_WIDTH = "offsetWidth", OFFSET_HEIGHT = "offsetHeight", CLIENT_WIDTH = "clientWidth", CLIENT_HEIGHT = "clientHeight", COLOR_RE = /[Cc]olor$/, EM_OR_PERCENT_RE = /%|em/, CSS_MEASUREMENT_RE = /^([0-9]*\.?[0-9]+|[0-9]+\.?[0-9]*)(em|px|\%|pt|vh|vw|cm|ex|in|mm|pc|vmin)$/, WIDTH_RE = /width/i, NUMBER_RE = /\d/, BOX_RE = /(top|bottom|left|right|width|height)$/, DIMENSION_RE = /([Tt]op|[Bb]ottom|[Ll]eft|[Rr]ight|[wW]idth|[hH]eight|Size|Radius)$/, IE_ALPHA_OPACITY_RE = /\(opacity\=([0-9]+)\)/i, IE_ALPHA_OPACITY_TEMPLATE = "alpha(opacity=$opacity)", IE_ALPHA_OPACITY_TEMPLATE_RE = /\$opacity/, GET_OPACITY = opacityNotSupported, SET_OPACITY = opacityNotSupported, SET_STYLE = styleManipulationNotSupported, GET_STYLE = styleManipulationNotSupported, ERROR_INVALID_DOM = STRING[1101], EXPORTS = {
+            var CORE = __webpack_require__(5), STRING = __webpack_require__(22), DETECTED = __webpack_require__(14), DOM = __webpack_require__(21), COLOR = __webpack_require__(24), PADDING_BOTTOM = "paddingBottom", PADDING_TOP = "paddingTop", PADDING_LEFT = "paddingLeft", PADDING_RIGHT = "paddingRight", OFFSET_LEFT = "offsetLeft", OFFSET_TOP = "offsetTop", OFFSET_WIDTH = "offsetWidth", OFFSET_HEIGHT = "offsetHeight", CLIENT_WIDTH = "clientWidth", CLIENT_HEIGHT = "clientHeight", COLOR_RE = /[Cc]olor$/, EM_OR_PERCENT_RE = /%|em/, CSS_MEASUREMENT_RE = /^([0-9]*\.?[0-9]+|[0-9]+\.?[0-9]*)(em|px|\%|pt|vh|vw|cm|ex|in|mm|pc|vmin)$/, WIDTH_RE = /width/i, NUMBER_RE = /\d/, BOX_RE = /(top|bottom|left|right|width|height)$/, DIMENSION_RE = /([Tt]op|[Bb]ottom|[Ll]eft|[Rr]ight|[wW]idth|[hH]eight|Size|Radius)$/, IE_ALPHA_OPACITY_RE = /\(opacity\=([0-9]+)\)/i, IE_ALPHA_OPACITY_TEMPLATE = "alpha(opacity=$opacity)", IE_ALPHA_OPACITY_TEMPLATE_RE = /\$opacity/, GET_OPACITY = opacityNotSupported, SET_OPACITY = opacityNotSupported, SET_STYLE = styleManipulationNotSupported, GET_STYLE = styleManipulationNotSupported, ERROR_INVALID_DOM = STRING[1101], EXPORTS = {
                 add: addClass,
                 remove: removeClass,
                 computedStyle: computedStyleNotSupported,
@@ -1631,12 +1642,12 @@
         }());
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var CORE = __webpack_require__(4), FORMAT = __webpack_require__(24), COLOR_RE = /^(\#?|rgba?|hsla?)(\(([^\,]+(\,[^\,]+){2,3})\)|[a-f0-9]{3}|[a-f0-9]{6})$/, NUMBER_RE = /^[0-9]*\.?[0-9]+|[0-9]+\.?[0-9]*$/, REMOVE_SPACES = /[ \r\n\t\s]+/g, TO_COLOR = {
-            rgb: __webpack_require__(25),
-            rgba: __webpack_require__(26),
-            hsl: __webpack_require__(27),
-            hsla: __webpack_require__(28),
-            hex: __webpack_require__(29)
+        var CORE = __webpack_require__(5), FORMAT = __webpack_require__(25), COLOR_RE = /^(\#?|rgba?|hsla?)(\(([^\,]+(\,[^\,]+){2,3})\)|[a-f0-9]{3}|[a-f0-9]{6})$/, NUMBER_RE = /^[0-9]*\.?[0-9]+|[0-9]+\.?[0-9]*$/, REMOVE_SPACES = /[ \r\n\t\s]+/g, TO_COLOR = {
+            rgb: __webpack_require__(26),
+            rgba: __webpack_require__(27),
+            hsl: __webpack_require__(28),
+            hsla: __webpack_require__(29),
+            hex: __webpack_require__(30)
         }, EXPORTS = {
             parse: parseColorString,
             parseType: parseType,
@@ -1745,7 +1756,7 @@
         }
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var RGBA = __webpack_require__(26), CORE = __webpack_require__(4), EXPORTS = module.exports = CORE.assign({}, RGBA);
+        var RGBA = __webpack_require__(27), CORE = __webpack_require__(5), EXPORTS = module.exports = CORE.assign({}, RGBA);
         function toString(integer) {
             return "rgb(" + RGBA.toArray(integer).slice(0, 3).join(",") + ")";
         }
@@ -1756,7 +1767,7 @@
         EXPORTS.toInteger = toInteger;
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var CORE = __webpack_require__(4), FORMAT = __webpack_require__(24), BYTE = 255, BYTE_PERCENT = 127, BYTE_HUE = 511, PERCENT = 100, HUE = 360, SATURATION = PERCENT, LUMINOSITY = PERCENT;
+        var CORE = __webpack_require__(5), FORMAT = __webpack_require__(25), BYTE = 255, BYTE_PERCENT = 127, BYTE_HUE = 511, PERCENT = 100, HUE = 360, SATURATION = PERCENT, LUMINOSITY = PERCENT;
         function hue2rgb(p, q, t) {
             t = (t + 1) % 1;
             switch (true) {
@@ -1836,7 +1847,7 @@
         };
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var HSLA = __webpack_require__(27), CORE = __webpack_require__(4), EXPORTS = module.exports = CORE.assign({}, HSLA);
+        var HSLA = __webpack_require__(28), CORE = __webpack_require__(5), EXPORTS = module.exports = CORE.assign({}, HSLA);
         function toString(integer) {
             var values = HSLA.toArray(integer).slice(0, 3);
             values[1] += "%";
@@ -1846,7 +1857,7 @@
         EXPORTS.toString = toString;
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var CORE = __webpack_require__(4), FORMAT = __webpack_require__(24), BYTE = 255, BYTE_PERCENT = 127, BYTE_HUE = 511, HUE = 360, PERCENT = 100;
+        var CORE = __webpack_require__(5), FORMAT = __webpack_require__(25), BYTE = 255, BYTE_PERCENT = 127, BYTE_HUE = 511, HUE = 360, PERCENT = 100;
         function itemize(value, index, format) {
             var F = FORMAT, M = Math, percent = PERCENT, parse = parseFloat, min = 0, max = index < 1 ? HUE : percent;
             switch (format) {
@@ -1893,7 +1904,7 @@
         };
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var RGBA = __webpack_require__(26), CORE = __webpack_require__(4), EXPORTS = module.exports = CORE.assign({}, RGBA);
+        var RGBA = __webpack_require__(27), CORE = __webpack_require__(5), EXPORTS = module.exports = CORE.assign({}, RGBA);
         function toHex(integer) {
             var M = Math;
             integer = M.max(0, M.min(integer, 255));
@@ -1910,7 +1921,7 @@
     }, function(module, exports, __webpack_require__) {
         (function(global) {
             "use strict";
-            var CORE = __webpack_require__(4), INFO = __webpack_require__(13), STRING = __webpack_require__(21), EVENTS = null, PAGE_UNLOADED = false, IE_CUSTOM_EVENTS = {}, ERROR_OBSERVABLE_NO_SUPPORT = STRING[1131], ERROR_INVALID_TYPE = STRING[1132], ERROR_INVALID_HANDLER = STRING[1133], IE_BUBBLE_EVENT = "beforeupdate", IE_NO_BUBBLE_EVENT = "propertychanged", EXPORTS = module.exports = {
+            var CORE = __webpack_require__(5), INFO = __webpack_require__(14), STRING = __webpack_require__(22), EVENTS = null, PAGE_UNLOADED = false, IE_CUSTOM_EVENTS = {}, ERROR_OBSERVABLE_NO_SUPPORT = STRING[1131], ERROR_INVALID_TYPE = STRING[1132], ERROR_INVALID_HANDLER = STRING[1133], MIDDLEWARE_PREFIX = "libdom.event.", IE_BUBBLE_EVENT = "beforeupdate", IE_NO_BUBBLE_EVENT = "propertychanged", EXPORTS = module.exports = {
                 on: listen,
                 un: unlisten,
                 fire: dispatch,
@@ -1919,7 +1930,7 @@
             var RESOLVE, LISTEN, UNLISTEN, DISPATCH, EVENT_INFO, IS_CAPABLE, SUBJECT;
             function listen(observable, type, handler, context) {
                 var last = EVENTS;
-                var current;
+                var current, args;
                 if (!CORE.string(type)) {
                     throw new Error(ERROR_INVALID_TYPE);
                 }
@@ -1933,6 +1944,14 @@
                 if (typeof context === "undefined") {
                     context = null;
                 }
+                args = [ observable, type, handler, context ];
+                CORE.run(MIDDLEWARE_PREFIX + "listen", args);
+                observable = args[0];
+                type = args[1];
+                handler = args[2];
+                context = args[3];
+                args.splice(0, 4);
+                args = null;
                 current = LISTEN(observable, type, handler, context);
                 current.unlisten = createUnlistener(current);
                 current.head = last;
@@ -1944,7 +1963,7 @@
                 return current.unlisten;
             }
             function unlisten(observable, type, handler, context) {
-                var found, len;
+                var found, len, args;
                 if (!CORE.string(type)) {
                     throw new Error(ERROR_INVALID_TYPE);
                 }
@@ -1958,6 +1977,14 @@
                 if (typeof context === "undefined") {
                     context = null;
                 }
+                args = [ observable, type, handler, context ];
+                CORE.run(MIDDLEWARE_PREFIX + "unlisten", args);
+                observable = args[0];
+                type = args[1];
+                handler = args[2];
+                context = args[3];
+                args.splice(0, 4);
+                args = null;
                 found = filter(observable, type, handler, context);
                 for (len = found.length; len--; ) {
                     found[len].unlisten();
@@ -2043,7 +2070,7 @@
             function w3cDispatch(observable, type, properties) {
                 var hasOwn = CORE.contains, event = global.document.createEvent("Event");
                 var name;
-                event.initEvent(type, properties.bubbles !== false, properties.cancelable !== false);
+                event.initEvent(type, properties.bubbles === true, properties.cancelable !== false);
                 for (name in properties) {
                     if (hasOwn(properties, name) && !(name in event)) {
                         event[name] = properties[name];
@@ -2058,6 +2085,7 @@
             }
             function w3cCreateHandler(handler, context) {
                 function onEvent(event) {
+                    CORE.run(MIDDLEWARE_PREFIX + "dispatch", [ event.type, event ]);
                     return handler.call(context, event, event.target);
                 }
                 return onEvent;
@@ -2092,7 +2120,7 @@
                 }
                 if (ieTestCustomEvent(observable, type)) {
                     event.customType = type;
-                    type = properties.bubbles ? IE_BUBBLE_EVENT : IE_NO_BUBBLE_EVENT;
+                    type = properties.bubbles === true ? IE_BUBBLE_EVENT : IE_NO_BUBBLE_EVENT;
                 }
                 name = "on" + type;
                 observable.fireEvent(name, event);
@@ -2113,6 +2141,7 @@
             function ieCreateHandler(handler, context) {
                 function onEvent() {
                     var event = global.event;
+                    CORE.run(MIDDLEWARE_PREFIX + "dispatch", [ event.type, event ]);
                     return handler.call(context, event, event.target || event.srcElement);
                 }
                 return onEvent;
@@ -2121,6 +2150,8 @@
                 function onEvent() {
                     var event = global.event;
                     if (event.customType === type) {
+                        CORE.run(MIDDLEWARE_PREFIX + "dispatch", [ type, event ]);
+                        event.type = type;
                         return handler.call(context, event, event.target || event.srcElement);
                     }
                 }
@@ -2193,7 +2224,7 @@
     }, function(module, exports, __webpack_require__) {
         (function(global) {
             "use strict";
-            var CORE = __webpack_require__(4), DETECTED = __webpack_require__(13), STRING = __webpack_require__(21), DOM = __webpack_require__(20), CSS = __webpack_require__(22), ERROR_INVALID_ELEMENT = STRING[1101], ERROR_INVALID_DOM = STRING[1102], OFFSET_TOP = "offsetTop", OFFSET_LEFT = "offsetLeft", OFFSET_WIDTH = "offsetWidth", OFFSET_HEIGHT = "offsetHeight", MARGIN_TOP = "marginTop", MARGIN_LEFT = "marginLeft", SCROLL_TOP = "scrollTop", SCROLL_LEFT = "scrollLeft", BOUNDING_RECT = "getBoundingClientRect", DEFAULTVIEW = null, ELEMENT_VIEW = 1, PAGE_VIEW = 2, USE_ZOOM_FACTOR = false, IE_PAGE_STAT_ACCESS = "documentElement", boundingRect = false, getPageScroll = null, getOffset = null, getSize = null, getScreenSize = null, EXPORTS = {
+            var CORE = __webpack_require__(5), DETECTED = __webpack_require__(14), STRING = __webpack_require__(22), DOM = __webpack_require__(21), CSS = __webpack_require__(23), ERROR_INVALID_ELEMENT = STRING[1101], ERROR_INVALID_DOM = STRING[1102], OFFSET_TOP = "offsetTop", OFFSET_LEFT = "offsetLeft", OFFSET_WIDTH = "offsetWidth", OFFSET_HEIGHT = "offsetHeight", MARGIN_TOP = "marginTop", MARGIN_LEFT = "marginLeft", SCROLL_TOP = "scrollTop", SCROLL_LEFT = "scrollLeft", BOUNDING_RECT = "getBoundingClientRect", DEFAULTVIEW = null, ELEMENT_VIEW = 1, PAGE_VIEW = 2, USE_ZOOM_FACTOR = false, IE_PAGE_STAT_ACCESS = "documentElement", boundingRect = false, getPageScroll = null, getOffset = null, getSize = null, getScreenSize = null, EXPORTS = {
                 offset: offset,
                 size: size,
                 box: box,
@@ -2501,7 +2532,7 @@
     }, function(module, exports, __webpack_require__) {
         (function(global) {
             "use strict";
-            var DETECTED = __webpack_require__(13), STRING = __webpack_require__(21), DOM = __webpack_require__(20), DIMENSION = __webpack_require__(31), DETECTED_DOM = DETECTED.dom, DETECTED_SELECTION = DETECTED.selection, ERROR_DOM = STRING[1102], SELECT_ELEMENT = null, CLEAR_SELECTION = null, UNSELECTABLE = attributeUnselectable, CSS_UNSELECT = DETECTED_SELECTION.cssUnselectable, EXPORTS = {
+            var DETECTED = __webpack_require__(14), STRING = __webpack_require__(22), DOM = __webpack_require__(21), DIMENSION = __webpack_require__(32), DETECTED_DOM = DETECTED.dom, DETECTED_SELECTION = DETECTED.selection, ERROR_DOM = STRING[1102], SELECT_ELEMENT = null, CLEAR_SELECTION = null, UNSELECTABLE = attributeUnselectable, CSS_UNSELECT = DETECTED_SELECTION.cssUnselectable, EXPORTS = {
                 select: select,
                 clear: clear,
                 unselectable: unselectable
@@ -2601,7 +2632,7 @@
         }());
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var STRING = __webpack_require__(21), CORE = __webpack_require__(4), EASING = __webpack_require__(34), COLOR = __webpack_require__(23), CSS = __webpack_require__(22), DIMENSION = __webpack_require__(31), SESSION_ACCESS = "__animate_session", BOX_POSITION = {
+        var STRING = __webpack_require__(22), CORE = __webpack_require__(5), EASING = __webpack_require__(35), COLOR = __webpack_require__(24), CSS = __webpack_require__(23), DIMENSION = __webpack_require__(32), SESSION_ACCESS = "__animate_session", BOX_POSITION = {
             left: 0,
             top: 1,
             right: 2,
@@ -2937,6 +2968,274 @@
             return endValue / 2 * (M.sqrt(1 - currentFrame * currentFrame) + 1) + startValue;
         }
         module.exports = EXPORTS;
+    }, function(module, exports) {}, , , , function(module, exports, __webpack_require__) {
+        (function(global) {
+            "use strict";
+            var LIBDOM = __webpack_require__(3), LIBCORE = __webpack_require__(5), EVENT_NAME = "buspublish";
+            function create() {
+                return new EventBus();
+            }
+            function createStringFilter(bus, string, handler) {
+                function onEvent(event) {
+                    var message = event.busmessage;
+                    if (message[0] === bus && message[1] === string) {
+                        handler(message[1], message[2]);
+                    }
+                }
+                return onEvent;
+            }
+            function createRegExpFilter(bus, regex, handler) {
+                function onEvent(event) {
+                    var message = event.busmessage;
+                    if (message[0] === bus && regex.test(message[1])) {
+                        handler(message[1], message[2]);
+                    }
+                }
+                return onEvent;
+            }
+            function setListener(bus, listener, unsubscribe) {
+                listener.item = unsubscribe;
+                listener.before = null;
+                listener.next = bus.subscriptions;
+                bus.subscriptions = listener;
+            }
+            function unsetListener(bus, listener) {
+                var current = bus.subscriptions, before = listener.before, after = listener.next;
+                if (before) {
+                    before.next = after;
+                }
+                if (after) {
+                    after.before = before;
+                }
+                if (current === listener) {
+                    bus.subscriptions = before || after;
+                }
+                delete listener.item;
+                delete listener.next;
+                delete listener.before;
+            }
+            function EventBus() {
+                this.queue = [];
+            }
+            EventBus.prototype = {
+                subscriptions: null,
+                queue: void 0,
+                publishing: false,
+                publish: function(event, message) {
+                    var me = this, CORE = LIBCORE, DOM = LIBDOM;
+                    var list, item, dispatch, target, eventName;
+                    if (CORE.string(event) && CORE.object(message)) {
+                        target = global.document;
+                        eventName = EVENT_NAME;
+                        list = me.queue;
+                        list[list.length] = [ me, event, message ];
+                        if (!me.publishing) {
+                            me.publishing = true;
+                            dispatch = DOM.dispatch;
+                            for (;list.length; ) {
+                                item = list[0];
+                                list.splice(0, 1);
+                                dispatch(target, eventName, {
+                                    busmessage: item,
+                                    bubbles: false
+                                });
+                            }
+                            me.publishing = false;
+                        }
+                        target = dispatch = list = item = null;
+                    }
+                    return me;
+                },
+                subscribe: function(filter, handler) {
+                    var me = this, CORE = LIBCORE, DOM = LIBDOM, G = global, eventName = EVENT_NAME, isString = CORE.string(filter), listener = null;
+                    function unsubscribe() {
+                        if (listener) {
+                            DOM.un(G.document, eventName, listener);
+                            unsetListener(me, listener);
+                            listener = null;
+                        }
+                    }
+                    if (filter instanceof RegExp || isString) {
+                        DOM.on(G.document, eventName, listener = isString ? createStringFilter(me, filter, handler) : createRegExpFilter(me, filter, handler));
+                        setListener(me, listener, unsubscribe);
+                    }
+                    return unsubscribe;
+                },
+                clear: function() {
+                    var me = this, current = me.subscriptions;
+                    var next;
+                    for (;current; current = next) {
+                        next = current.next;
+                        current.item();
+                    }
+                }
+            };
+            module.exports = {
+                create: create,
+                bus: create()
+            };
+        }).call(exports, function() {
+            return this;
+        }());
+    }, function(module, exports, __webpack_require__) {
+        (function(global) {
+            "use strict";
+            var LIBCORE = __webpack_require__(5), LIBDOM = __webpack_require__(3), COMPONENT_TYPE_ATTR = "role", COMPONENT_ID_ATTR = "data-id", COMPONENT_ID_GEN = 0, DEFAULT_TYPE = "presentation", COMPONENT_TYPES = {}, COMPONENTS = {}, MIDDLEWARE_PREFIX = "libdom-ui.component.", ZOMBIES = [], EXPORTS = {};
+            function runMiddleware(before, name, args) {
+                return LIBCORE.run((before === true ? "before:" : "after:") + MIDDLEWARE_PREFIX + name, args || []);
+            }
+            function registerMiddleware(before, name, handler) {
+                return LIBCORE.register((before === true ? "before:" : "after:") + MIDDLEWARE_PREFIX + name, handler);
+            }
+            function bind(component, node) {
+                var run = runMiddleware, args = [ component, node ];
+                run(true, "bind", args);
+                component.onBind(node);
+                run(false, "bind", args);
+                args = args[0] = args[1] = null;
+                return component;
+            }
+            function beforeBind(component, node) {
+                component.dom = node;
+            }
+            function afterBind(component) {
+                if (component.detached) {
+                    attach(component);
+                }
+            }
+            function attach(component) {
+                var node = component.dom, run = runMiddleware;
+                var args;
+                if (node && component.detached && LIBDOM.contains(node.ownerDocument, node)) {
+                    args = [ component, node ];
+                    run(true, "attach", args);
+                    component.detached = false;
+                    component.onAttach();
+                    run(false, "attach", args);
+                    args = args[0] = args[1] = null;
+                }
+                node = null;
+                return component;
+            }
+            function detach(component) {
+                var node = component.dom, run = runMiddleware;
+                var args;
+                if (node && !component.detached && !LIBDOM.contains(node.ownerDocument, node)) {
+                    args = [ component, node ];
+                    run(true, "detach", args);
+                    component.detached = true;
+                    component.onDetach();
+                    run(false, "detach", args);
+                    args = args[0] = args[1] = null;
+                }
+                node = null;
+                return component;
+            }
+            function unbind(component) {
+                var run = runMiddleware, node = component.dom;
+                var args;
+                if (node) {
+                    args = [ component ];
+                    run(true, "unbind", args);
+                    component.dom = null;
+                    run(false, "unbind", args);
+                    args = args[0] = null;
+                }
+                node = null;
+                return component;
+            }
+            function beforeUnbind(component) {
+                if (!component.detached) {
+                    detach(component);
+                }
+            }
+            function afterUnbind(component) {
+                var id = component.id;
+                LIBCORE.each(component, cleanupComponentCallback);
+                component.id = id;
+            }
+            function cleanupComponentCallback() {
+                delete arguments[2][arguments[1]];
+            }
+            function createComponent(type) {
+                var types = COMPONENT_TYPES, Class = types[LIBCORE.contains(types, type) ? type : DEFAULT_TYPE], id = "comp" + ++COMPONENT_ID_GEN, component = new Class();
+                component.id = id;
+                COMPONENTS[id] = component;
+                return component;
+            }
+            function bindNode(node) {
+                var CORE = LIBCORE, list = COMPONENTS, isString = CORE.string, typeAttr = COMPONENT_TYPE_ATTR, idAttr = COMPONENT_ID_ATTR, type = node.getAttribute(typeAttr), id = node.getAttribute(idAttr), component = null;
+                var index;
+                if (isString(type)) {
+                    if (isString(id)) {
+                        component = list[id];
+                    } else {
+                        index = findZombie(type);
+                        if (index !== -1) {
+                            component = resurrect(index);
+                        } else {
+                            component = createComponent();
+                        }
+                        bind(component, node);
+                    }
+                }
+                return component;
+            }
+            function findZombie(type) {
+                var component = COMPONENTS, list = ZOMBIES, l = list.length;
+                for (;l--; ) {
+                    if (component[list[l]].type === type) {
+                        return l;
+                    }
+                }
+                return -1;
+            }
+            function resurrect(index) {
+                var list = ZOMBIES, CORE = LIBCORE;
+                var component;
+                if (CORE.number(index) && index in list) {
+                    component = COMPONENTS[list[index]];
+                    list.splice(index, 1);
+                    unbind(component);
+                    return component;
+                }
+                return void 0;
+            }
+            function processNodesFrom(node) {
+                var dom = LIBDOM;
+                if (dom.is(node, 1, 9, 11)) {
+                    dom.eachNodePreorder(node.nodeType === 9 ? node.body : node, onProcessNode);
+                }
+            }
+            function onProcessNode(node) {
+                var component = bindNode(node);
+                if (component) {
+                    console.log("created component: ", component);
+                }
+            }
+            function Component() {}
+            Component.prototype = {
+                dom: void 0,
+                type: DEFAULT_TYPE,
+                detached: true,
+                constructor: Component,
+                onAttach: function() {},
+                onDetach: function() {},
+                onBind: function() {},
+                onUnbind: function() {}
+            };
+            COMPONENT_TYPES[DEFAULT_TYPE] = Component;
+            registerMiddleware(true, "bind", beforeBind);
+            registerMiddleware(false, "bind", afterBind);
+            registerMiddleware(true, "unbind", beforeUnbind);
+            registerMiddleware(false, "unbind", afterUnbind);
+            LIBDOM.on(global, "load", function() {
+                processNodesFrom(global.document.body);
+            });
+            module.exports = EXPORTS;
+        }).call(exports, function() {
+            return this;
+        }());
     } ]);
 });
 
