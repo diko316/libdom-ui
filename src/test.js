@@ -3,4 +3,5 @@
 
 module.exports = require("./index.js");
 
-require("./test/event-bus.js");
+// yes it works now
+//require("./test/event-bus.js");
