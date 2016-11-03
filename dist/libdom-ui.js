@@ -3303,6 +3303,7 @@
                         next = current.next;
                         current.item();
                     }
+                    return this;
                 }
             };
             module.exports = {
@@ -3313,193 +3314,122 @@
             return this;
         }());
     }, function(module, exports, __webpack_require__) {
-        (function(global) {
-            "use strict";
-            var LIBCORE = __webpack_require__(5), LIBDOM = __webpack_require__(3), COMPONENT_TYPE_ATTR = "role", COMPONENT_ID_ATTR = "data-id", COMPONENT_ID_GEN = 0, DEFAULT_TYPE = "presentation", COMPONENT_TYPES = {}, COMPONENTS = {}, MIDDLEWARE = LIBCORE.middleware("libdom-ui.component"), ZOMBIES = [], EXPORTS = {
-                get: getComponent,
-                destroy: destroyComponent
-            };
-            function bind(component, node) {
-                var run = MIDDLEWARE.run, args = [ component, node ];
-                run("before:bind", args);
-                component.onBind(node);
-                run("before:bind", args);
-                args = args[0] = args[1] = null;
-                return component;
+        "use strict";
+        var LIBCORE = __webpack_require__(5), LIBDOM = __webpack_require__(3), MIDDLEWARE = LIBCORE.middleware("libdom-ui.node"), NODE_BIND_ATTR = "data-node-bind", NODE_ROLES_ATTR = "role", NODE_ID_GEN = 0, ZOMBIES = [], NODES = {}, EXPORTS = {
+            bind: bindFrom,
+            unbind: unbindFrom
+        };
+        function canBind(node) {
+            if (getBinding(node)) {
+                return false;
             }
-            function beforeBind(component, node) {
-                component.dom = node;
+            return !!node.getAttribute(NODE_ROLES_ATTR);
+        }
+        function bindFrom(node) {
+            var DOM = LIBDOM;
+            if (DOM.is(node, 1, 9)) {
+                DOM.eachNodePreorder(node.nodeType === 9 ? node.body : node, bind);
             }
-            function afterBind(component) {
-                if (component.detached) {
-                    attach(component);
+            return EXPORTS;
+        }
+        function bind(node) {
+            var zombies = ZOMBIES, nodes = NODES;
+            var nodeBind;
+            if (canBind(node)) {
+                if (zombies.length) {
+                    nodeBind = nodes[zombies[0]];
+                    nodeBind.dead = false;
+                    zombies.splice(0, 1);
+                } else {
+                    nodeBind = new Node();
                 }
+                nodeBind.bind(node);
+                return nodeBind.id;
             }
-            function attach(component) {
-                var node = component.dom, run = MIDDLEWARE.run;
+            return void 0;
+        }
+        function getBinding(node) {
+            var CORE = LIBCORE, nodes = NODES, id = node.getAttribute(NODE_BIND_ATTR);
+            if (CORE.string(id) && id in nodes) {
+                return nodes[id];
+            }
+            return false;
+        }
+        function unbindFrom(node) {
+            var DOM = LIBDOM;
+            if (DOM.is(node, 1, 9)) {
+                DOM.eachNodePostorder(node.nodeType === 9 ? node.body : node, unbind);
+            }
+            return EXPORTS;
+        }
+        function unbind(node) {
+            var binding = getBinding(node);
+            if (binding) {
+                binding.destroy();
+            }
+        }
+        function destroy(id) {}
+        function Node() {
+            var me = this, id = "node" + ++NODE_ID_GEN;
+            me.id = id;
+            me.dead = false;
+            NODES[id] = me;
+            MIDDLEWARE.run("create", [ me ]);
+        }
+        Node.prototype = {
+            dom: null,
+            dead: true,
+            attached: false,
+            constructor: Node,
+            bind: function(node) {
+                var me = this, run = MIDDLEWARE.run;
                 var args;
-                if (node && component.detached && LIBDOM.contains(node.ownerDocument, node)) {
-                    args = [ component, node ];
-                    run("before:attach", args);
-                    component.detached = false;
-                    component.onAttach();
-                    run("after:attach", args);
+                if (!me.dom) {
+                    args = [ me, node ];
+                    run("before:bind", args);
+                    me.dom = node;
+                    me.onBind(node);
+                    run("after:bind", args);
                     args = args[0] = args[1] = null;
                 }
-                node = null;
-                return component;
-            }
-            function detach(component) {
-                var node = component.dom, run = MIDDLEWARE.run;
+                return me;
+            },
+            onBind: function() {},
+            unbind: function() {
+                var me = this, run = MIDDLEWARE.run, dom = me.dom;
                 var args;
-                if (node && !component.detached && !LIBDOM.contains(node.ownerDocument, node)) {
-                    args = [ component, node ];
-                    run("before:detach", args);
-                    component.detached = true;
-                    component.onDetach();
-                    run("after:detach", args);
-                    args = args[0] = args[1] = null;
-                }
-                node = null;
-                return component;
-            }
-            function unbind(component) {
-                var run = MIDDLEWARE.run, node = component.dom;
-                var args;
-                if (node) {
-                    args = [ component ];
+                if (dom) {
+                    args = [ me, dom ];
                     run("before:unbind", args);
-                    component.dom = null;
+                    me.onUnbind(dom);
+                    me.dom = null;
                     run("after:unbind", args);
-                    args = args[0] = null;
+                    dom = args = args[0] = args[1] = null;
                 }
-                node = null;
-                return component;
-            }
-            function beforeUnbind(component) {
-                if (!component.detached) {
-                    detach(component);
-                }
-            }
-            function afterUnbind() {}
-            function destroy(component) {
-                var run = MIDDLEWARE.run;
+                return this;
+            },
+            onUnbind: function() {},
+            destroy: function() {
+                var me = this, zombies = ZOMBIES, run = MIDDLEWARE.run, id = me.id;
                 var args;
-                if (!component.destroyed) {
-                    args = [ component ];
+                if (!me.dead) {
+                    me.dead = true;
+                    if (me.dom) {
+                        me.unbind();
+                    }
+                    args = [ me ];
                     run("before:destroy", args);
-                    component.onDestroy();
-                    run("after:destroy", args);
                     args = args[0] = null;
+                    me.onDestroy();
+                    LIBCORE.clear(me);
+                    me.id = id;
+                    run("after:destroy", args);
+                    zombies[zombies.length] = id;
                 }
-                return component;
-            }
-            function beforeDestroy(component) {
-                if (component.dom) {
-                    unbind(component);
-                }
-            }
-            function afterDestroy(component) {
-                var list = ZOMBIES, id = component.id;
-                list[list.length] = id;
-                LIBCORE.clear(component);
-                component.id = id;
-            }
-            function createComponent(type) {
-                var types = COMPONENT_TYPES, Class = types[LIBCORE.contains(types, type) ? type : DEFAULT_TYPE], id = "comp" + ++COMPONENT_ID_GEN, component = new Class();
-                component.id = id;
-                COMPONENTS[id] = component;
-                return component;
-            }
-            function destroyComponent(id) {
-                var component = getComponent(id);
-                if (component) {
-                    destroy(component);
-                }
-                return EXPORTS;
-            }
-            function getComponent(id) {
-                var list = COMPONENTS;
-                if (LIBCORE.contains(list, id)) {
-                    return list[id];
-                }
-                return void 0;
-            }
-            function bindNode(node) {
-                var CORE = LIBCORE, list = COMPONENTS, isString = CORE.string, typeAttr = COMPONENT_TYPE_ATTR, idAttr = COMPONENT_ID_ATTR, type = node.getAttribute(typeAttr), id = node.getAttribute(idAttr), component = null;
-                var index;
-                if (isString(type)) {
-                    if (isString(id)) {
-                        component = list[id];
-                    } else {
-                        index = findZombie(type);
-                        if (index !== -1) {
-                            component = resurrect(index);
-                        } else {
-                            component = createComponent();
-                        }
-                        bind(component, node);
-                    }
-                }
-                return component;
-            }
-            function findZombie(type) {
-                var components = COMPONENTS, list = ZOMBIES, l = list.length;
-                for (;l--; ) {
-                    if (components[list[l]].type === type) {
-                        return l;
-                    }
-                }
-                return -1;
-            }
-            function resurrect(index) {
-                var list = ZOMBIES, CORE = LIBCORE;
-                var component;
-                if (CORE.number(index) && index in list) {
-                    component = COMPONENTS[list[index]];
-                    list.splice(index, 1);
-                    unbind(component);
-                    return component;
-                }
-                return void 0;
-            }
-            function processNodesFrom(node) {
-                var dom = LIBDOM;
-                if (dom.is(node, 1, 9, 11)) {
-                    dom.eachNodePreorder(node.nodeType === 9 ? node.body : node, onProcessNode);
-                }
-            }
-            function onProcessNode(node) {
-                var component = bindNode(node);
-                if (component) {
-                    console.log("created component: ", component);
-                }
-            }
-            function Component() {
-                this.destroyed = false;
-                MIDDLEWARE.run("instantiate", [ this ]);
-            }
-            Component.prototype = {
-                dom: void 0,
-                type: DEFAULT_TYPE,
-                detached: true,
-                destroyed: true,
-                constructor: Component,
-                onAttach: function() {},
-                onDetach: function() {},
-                onBind: function() {},
-                onUnbind: function() {},
-                onDestroy: function() {}
-            };
-            COMPONENT_TYPES[DEFAULT_TYPE] = Component;
-            MIDDLEWARE.register("before:bind", beforeBind).register("bind", afterBind).register("before:unbind", beforeUnbind).register("unbind", afterUnbind).register("before:destroy", beforeDestroy).register("destroy", afterDestroy);
-            LIBDOM.on(global, "load", function() {
-                processNodesFrom(global.document.body);
-            });
-            module.exports = EXPORTS;
-        }).call(exports, function() {
-            return this;
-        }());
+            },
+            onDestroy: function() {}
+        };
+        module.exports = EXPORTS;
     } ]);
 });
 

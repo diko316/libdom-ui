@@ -23,7 +23,7 @@ if (DOM.env.browser) {
     
     
     rehash(EXPORTS,
-        require("./lib/component.js"),
+        require("./lib/node.js"),
         {
             
         });

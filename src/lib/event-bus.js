@@ -144,6 +144,8 @@ EventBus.prototype = {
             next = current.next;
             current.item();
         }
+        
+        return this;
     }
 };
 
