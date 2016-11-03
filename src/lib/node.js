@@ -100,15 +100,6 @@ function unbind(node) {
 }
 
 /**
- * Node Life Cycle
- */
-
-
-function destroy(id) {
-    
-}
-
-/**
  * Node Class
  */
 function Node() {
@@ -207,6 +198,8 @@ Node.prototype = {
         
     }
 };
+
+console.log(LIBCORE);
 
 
 module.exports = EXPORTS;

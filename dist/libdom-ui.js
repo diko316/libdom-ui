@@ -3368,7 +3368,6 @@
                 binding.destroy();
             }
         }
-        function destroy(id) {}
         function Node() {
             var me = this, id = "node" + ++NODE_ID_GEN;
             me.id = id;
@@ -3429,6 +3428,7 @@
             },
             onDestroy: function() {}
         };
+        console.log(LIBCORE);
         module.exports = EXPORTS;
     } ]);
 });
