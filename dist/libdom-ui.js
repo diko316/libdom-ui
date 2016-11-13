@@ -26,13 +26,13 @@
         if (DOM.env.browser) {
             DOM.ui = EXPORTS;
             try {
-                __webpack_require__(37);
+                __webpack_require__(38);
             } catch (e) {}
-            rehash(EXPORTS, __webpack_require__(41), {
+            rehash(EXPORTS, __webpack_require__(42), {
                 createBus: "create",
                 bus: "bus"
             });
-            rehash(EXPORTS, __webpack_require__(42), {});
+            rehash(EXPORTS, __webpack_require__(43), {});
         }
         module.exports = EXPORTS["default"] = EXPORTS;
     }, function(module, exports, __webpack_require__) {
@@ -41,13 +41,17 @@
     }, function(module, exports, __webpack_require__) {
         (function(global) {
             "use strict";
-            var CORE = __webpack_require__(5), detect = __webpack_require__(15), rehash = CORE.rehash, EXPORTS = {
+            var CORE = __webpack_require__(5), detect = __webpack_require__(16), rehash = CORE.rehash, EXPORTS = {
                 env: CORE.env,
                 info: detect
             };
             var css, event, dimension, selection;
             if (detect) {
-                rehash(EXPORTS, __webpack_require__(22), {
+                rehash(EXPORTS, __webpack_require__(23), {
+                    xmlEncode: "xmlEncode",
+                    xmlDecode: "xmlDecode"
+                });
+                rehash(EXPORTS, __webpack_require__(24), {
                     is: "is",
                     isView: "isView",
                     contains: "contains",
@@ -56,37 +60,40 @@
                     eachNodePostorder: "eachPostorder",
                     eachNodeLevelorder: "eachLevel",
                     add: "add",
+                    move: "move",
+                    replace: "replace",
                     remove: "remove"
                 });
-                rehash(EXPORTS, css = __webpack_require__(24), {
+                rehash(EXPORTS, css = __webpack_require__(26), {
                     addClass: "add",
                     removeClass: "remove",
                     computedStyle: "computedStyle",
                     stylize: "style"
                 });
-                rehash(EXPORTS, event = __webpack_require__(32), {
+                rehash(EXPORTS, event = __webpack_require__(25), {
                     on: "on",
                     un: "un",
                     purge: "purge",
-                    dispatch: "fire"
+                    dispatch: "fire",
+                    destructor: "ondestroy"
                 });
-                rehash(EXPORTS, dimension = __webpack_require__(33), {
+                rehash(EXPORTS, dimension = __webpack_require__(34), {
                     offset: "offset",
                     size: "size",
                     box: "box",
                     scroll: "scroll",
                     screen: "screen"
                 });
-                rehash(EXPORTS, selection = __webpack_require__(34), {
+                rehash(EXPORTS, selection = __webpack_require__(35), {
                     highlight: "select",
                     noHighlight: "unselectable",
                     clearHighlight: "clear"
                 });
-                rehash(EXPORTS, __webpack_require__(25), {
+                rehash(EXPORTS, __webpack_require__(27), {
                     parseColor: "parse",
                     formatColor: "stringify"
                 });
-                rehash(EXPORTS, __webpack_require__(35), {
+                rehash(EXPORTS, __webpack_require__(36), {
                     eachDisplacement: "each",
                     animateStyle: "style"
                 });
@@ -101,16 +108,17 @@
         module.exports = __webpack_require__(6);
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var DETECT = __webpack_require__(7), TYPE = __webpack_require__(9), OBJECT = __webpack_require__(10), ARRAY = __webpack_require__(11), PROCESSOR = __webpack_require__(12), EXPORTS = {
+        var DETECT = __webpack_require__(7), OBJECT = __webpack_require__(9), PROCESSOR = __webpack_require__(12), EXPORTS = {
             env: DETECT
         };
-        OBJECT.assign(EXPORTS, TYPE);
+        OBJECT.assign(EXPORTS, __webpack_require__(10));
         OBJECT.assign(EXPORTS, OBJECT);
-        OBJECT.assign(EXPORTS, ARRAY);
-        OBJECT.assign(EXPORTS, PROCESSOR);
         OBJECT.assign(EXPORTS, __webpack_require__(13));
+        OBJECT.assign(EXPORTS, __webpack_require__(11));
+        OBJECT.assign(EXPORTS, PROCESSOR);
+        OBJECT.assign(EXPORTS, __webpack_require__(14));
         PROCESSOR.chain = EXPORTS;
-        EXPORTS.Promise = __webpack_require__(14);
+        EXPORTS.Promise = __webpack_require__(15);
         module.exports = EXPORTS["default"] = EXPORTS;
     }, function(module, exports, __webpack_require__) {
         (function(global) {
@@ -294,87 +302,7 @@
         };
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var DETECTED = __webpack_require__(7), validSignature = DETECTED.validSignature, OBJECT_SIGNATURE = "[object Object]", OBJECT = Object, O = OBJECT.prototype, toString = O.toString, isSignature = validSignature ? objectSignature : ieObjectSignature;
-        function objectSignature(subject) {
-            return toString.call(subject);
-        }
-        function ieObjectSignature(subject) {
-            if (subject === null) {
-                return "[object Null]";
-            } else if (subject === void 0) {
-                return "[object Undefined]";
-            }
-            return toString.call(subject);
-        }
-        function isType(subject, type) {
-            return isSignature(subject) === type;
-        }
-        function isObject(subject) {
-            return toString.call(subject) === OBJECT_SIGNATURE;
-        }
-        function ieIsObject(subject) {
-            return subject !== null && subject !== void 0 && toString.call(subject) === OBJECT_SIGNATURE;
-        }
-        function isNativeObject(subject) {
-            var O = OBJECT;
-            var constructor, result;
-            if (isSignature(subject) === OBJECT_SIGNATURE) {
-                constructor = subject.constructor;
-                if (O.hasOwnProperty.call(subject, "constructor")) {
-                    delete subject.constructor;
-                    result = subject.constructor === O;
-                    subject.constructor = constructor;
-                    return result;
-                }
-                return constructor === O;
-            }
-            return false;
-        }
-        function isString(subject, allowEmpty) {
-            return typeof subject === "string" && (allowEmpty === true || subject.length !== 0);
-        }
-        function isNumber(subject) {
-            return typeof subject === "number" && isFinite(subject);
-        }
-        function isScalar(subject) {
-            switch (typeof subject) {
-              case "number":
-                return isFinite(subject);
-
-              case "boolean":
-              case "string":
-                return true;
-            }
-            return false;
-        }
-        function isFunction(subject) {
-            return toString.call(subject) === "[object Function]";
-        }
-        function isArray(subject) {
-            return toString.call(subject) === "[object Array]";
-        }
-        function isDate(subject) {
-            return toString.call(subject) === "[object Date]";
-        }
-        function isRegExp(subject) {
-            return toString.call(subject) === "[object RegExp]";
-        }
-        module.exports = {
-            signature: isSignature,
-            object: validSignature ? isObject : ieIsObject,
-            nativeObject: isNativeObject,
-            string: isString,
-            number: isNumber,
-            scalar: isScalar,
-            array: isArray,
-            method: isFunction,
-            date: isDate,
-            regex: isRegExp,
-            type: isType
-        };
-    }, function(module, exports, __webpack_require__) {
-        "use strict";
-        var O = Object.prototype, TYPE = __webpack_require__(9), OHasOwn = O.hasOwnProperty;
+        var O = Object.prototype, TYPE = __webpack_require__(10), STRING = __webpack_require__(11), OHasOwn = O.hasOwnProperty, NUMERIC_RE = /^[0-9]*$/;
         function empty() {}
         function assign(target, source, defaults) {
             var onAssign = apply, eachProperty = each;
@@ -394,7 +322,9 @@
             return target;
         }
         function applyProperties(value, name) {
-            this[0][name] = this[1][value];
+            var target = this;
+            target[0][name] = target[1][value];
+            target = null;
         }
         function assignAll(target, source, defaults) {
             var onAssign = apply, eachProperty = each;
@@ -429,8 +359,74 @@
         function applyClear() {
             delete arguments[2][arguments[1]];
         }
-        function buildInstance(Class) {
+        function fillin(target, source, hasown) {
+            each(source, applyFillin, target, hasown);
+            return target;
+        }
+        function applyFillin(value, name) {
+            var target = this;
+            if (!contains(target, name)) {
+                target[name] = value;
+            }
+            target = null;
+        }
+        function jsonFill(root, path, value, overwrite) {
+            var dimensions = STRING.jsonPath(path), type = TYPE, object = type.object, array = type.array, has = contains, apply = assign, numericRe = NUMERIC_RE, parent = root, name = path;
+            var numeric, item, c, l, property, temp, isArray;
+            if (dimensions) {
+                name = dimensions[0];
+                dimensions.splice(0, 1);
+                for (c = -1, l = dimensions.length; l--; ) {
+                    item = dimensions[++c];
+                    numeric = numericRe.test(item);
+                    if (has(parent, name)) {
+                        property = parent[name];
+                        isArray = array(property);
+                        if (!isArray && !object(property)) {
+                            if (numeric) {
+                                property = [ property ];
+                            } else {
+                                temp = property;
+                                property = {};
+                                property[""] = temp;
+                            }
+                        } else if (isArray && !numeric) {
+                            property = apply({}, property);
+                            delete property.length;
+                        }
+                    } else {
+                        property = numeric ? [] : {};
+                    }
+                    parent = parent[name] = property;
+                    if (!item) {
+                        if (array(parent)) {
+                            item = parent.length;
+                        } else if (0 in parent) {
+                            item = "0";
+                        }
+                    }
+                    name = item;
+                }
+            }
+            if (overwrite !== true && has(parent, name)) {
+                property = parent[name];
+                if (array(property)) {
+                    parent = property;
+                    name = parent.length;
+                } else {
+                    parent = parent[name] = [ property ];
+                    name = 1;
+                }
+            }
+            parent[name] = value;
+            parent = value = property = temp = null;
+            return root;
+        }
+        function buildInstance(Class, overrides) {
             empty.prototype = Class.prototype;
+            if (TYPE.object(overrides)) {
+                return assign(new empty(), overrides);
+            }
             return new empty();
         }
         function compare(object1, object2) {
@@ -550,110 +546,271 @@
             assign: assign,
             rehash: assignProperties,
             contains: contains,
-            buildInstance: buildInstance,
+            instantiate: buildInstance,
             clone: clone,
             compare: compare,
+            fillin: fillin,
+            fillJson: jsonFill,
             clear: clear
         };
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var DETECT = __webpack_require__(7), OBJECT = __webpack_require__(10), A = Array.prototype;
-        function indexOf(subject) {
-            var array = this, l = array.length, c = -1;
-            for (;l--; ) {
-                if (subject === array[++c]) {
-                    array = null;
-                    return c;
-                }
-            }
-            return -1;
+        var DETECTED = __webpack_require__(7), validSignature = DETECTED.validSignature, OBJECT_SIGNATURE = "[object Object]", OBJECT = Object, O = OBJECT.prototype, toString = O.toString, isSignature = validSignature ? objectSignature : ieObjectSignature;
+        function objectSignature(subject) {
+            return toString.call(subject);
         }
-        function lastIndexOf(subject) {
-            var array = this, l = array.length;
-            for (;l--; ) {
-                if (subject === array[l]) {
-                    array = null;
-                    return l;
-                }
+        function ieObjectSignature(subject) {
+            if (subject === null) {
+                return "[object Null]";
+            } else if (subject === void 0) {
+                return "[object Undefined]";
             }
-            return -1;
+            return toString.call(subject);
         }
-        function union(array, array2, clone) {
-            var subject, l, len, total;
-            array = clone !== false ? array : array.slice(0);
-            array.push.apply(array, array2);
-            total = array.length;
-            found: for (l = total; l--; ) {
-                subject = array[l];
-                for (len = total; len--; ) {
-                    if (l !== len && subject === array[len]) {
-                        total--;
-                        array.splice(l, 1);
-                        continue found;
-                    }
+        function isType(subject, type) {
+            return isSignature(subject) === type;
+        }
+        function isObject(subject) {
+            return toString.call(subject) === OBJECT_SIGNATURE;
+        }
+        function ieIsObject(subject) {
+            return subject !== null && subject !== void 0 && toString.call(subject) === OBJECT_SIGNATURE;
+        }
+        function isNativeObject(subject) {
+            var O = OBJECT;
+            var constructor, result;
+            if (isSignature(subject) === OBJECT_SIGNATURE) {
+                constructor = subject.constructor;
+                if (O.hasOwnProperty.call(subject, "constructor")) {
+                    delete subject.constructor;
+                    result = subject.constructor === O;
+                    subject.constructor = constructor;
+                    return result;
                 }
+                return constructor === O;
             }
-            return array;
+            return false;
         }
-        function intersect(array1, array2, clone) {
-            var total1 = array1.length, total2 = array2.length;
-            var subject, l1, l2;
-            array1 = clone !== false ? array1 : array1.slice(0);
-            found: for (l1 = total1; l1--; ) {
-                subject = array1[l1];
-                foundSame: for (l2 = total2; l2--; ) {
-                    if (subject === array2[l2]) {
-                        for (l2 = total1; l2--; ) {
-                            if (l2 !== l1 && subject === array1[l2]) {
-                                break foundSame;
-                            }
-                        }
-                        continue found;
-                    }
-                }
-                array1.splice(l1, 1);
-                total1--;
+        function isString(subject, allowEmpty) {
+            return typeof subject === "string" && (allowEmpty === true || subject.length !== 0);
+        }
+        function isNumber(subject) {
+            return typeof subject === "number" && isFinite(subject);
+        }
+        function isScalar(subject) {
+            switch (typeof subject) {
+              case "number":
+                return isFinite(subject);
+
+              case "boolean":
+              case "string":
+                return true;
             }
-            return array1;
+            return false;
         }
-        function difference(array1, array2, clone) {
-            var total1 = array1.length, total2 = array2.length;
-            var subject, l1, l2;
-            array1 = clone !== false ? array1 : array1.slice(0);
-            found: for (l1 = total1; l1--; ) {
-                subject = array1[l1];
-                for (l2 = total2; l2--; ) {
-                    if (subject === array2[l2]) {
-                        array1.splice(l1, 1);
-                        total1--;
-                        continue found;
-                    }
-                }
-                for (l2 = total1; l2--; ) {
-                    if (l2 !== l1 && subject === array1[l2]) {
-                        array1.splice(l1, 1);
-                        total1--;
-                        continue found;
-                    }
-                }
-            }
-            return array1;
+        function isFunction(subject) {
+            return toString.call(subject) === "[object Function]";
         }
-        if (!DETECT.indexOfSupport) {
-            OBJECT.assign(A, {
-                indexOf: indexOf,
-                lastIndexOf: lastIndexOf
-            });
+        function isArray(subject) {
+            return toString.call(subject) === "[object Array]";
+        }
+        function isDate(subject) {
+            return toString.call(subject) === "[object Date]";
+        }
+        function isRegExp(subject) {
+            return toString.call(subject) === "[object RegExp]";
         }
         module.exports = {
-            unionList: union,
-            intersectList: intersect,
-            differenceList: difference
+            signature: isSignature,
+            object: validSignature ? isObject : ieIsObject,
+            nativeObject: isNativeObject,
+            string: isString,
+            number: isNumber,
+            scalar: isScalar,
+            array: isArray,
+            method: isFunction,
+            date: isDate,
+            regex: isRegExp,
+            type: isType
+        };
+    }, function(module, exports) {
+        "use strict";
+        var HALF_BYTE = 128, SIX_BITS = 63, ONE_BYTE = 255, fromCharCode = String.fromCharCode, BASE64_MAP = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=", BASE64_EXCESS_REMOVE_RE = /[^a-zA-Z0-9\+\/]/;
+        function base64Encode(str) {
+            var map = BASE64_MAP, buffer = [], bl = 0, c = -1, excess = false, pad = map.charAt(64);
+            var l, total, code, flag, end, chr;
+            str = utf16ToUtf8(str);
+            l = total = str.length;
+            for (;l--; ) {
+                code = str.charCodeAt(++c);
+                flag = c % 3;
+                switch (flag) {
+                  case 0:
+                    chr = map.charAt((code & 252) >> 2);
+                    excess = (code & 3) << 4;
+                    break;
+
+                  case 1:
+                    chr = map.charAt(excess | (code & 240) >> 4);
+                    excess = (code & 15) << 2;
+                    break;
+
+                  case 2:
+                    chr = map.charAt(excess | (code & 192) >> 6);
+                    excess = code & 63;
+                }
+                buffer[bl++] = chr;
+                end = !l;
+                if (end || flag === 2) {
+                    buffer[bl++] = map.charAt(excess);
+                }
+                if (!l) {
+                    l = bl % 4;
+                    for (l = l && 4 - l; l--; ) {
+                        buffer[bl++] = pad;
+                    }
+                    break;
+                }
+            }
+            return buffer.join("");
+        }
+        function base64Decode(str) {
+            var map = BASE64_MAP, oneByte = ONE_BYTE, buffer = [], bl = 0, c = -1, code2str = fromCharCode;
+            var l, code, excess, chr, flag;
+            str = str.replace(BASE64_EXCESS_REMOVE_RE, "");
+            l = str.length;
+            for (;l--; ) {
+                code = map.indexOf(str.charAt(++c));
+                flag = c % 4;
+                switch (flag) {
+                  case 0:
+                    chr = 0;
+                    break;
+
+                  case 1:
+                    chr = (excess << 2 | code >> 4) & oneByte;
+                    break;
+
+                  case 2:
+                    chr = (excess << 4 | code >> 2) & oneByte;
+                    break;
+
+                  case 3:
+                    chr = (excess << 6 | code) & oneByte;
+                }
+                excess = code;
+                if (!l && flag < 3 && chr < 64) {
+                    break;
+                }
+                if (flag) {
+                    buffer[bl++] = code2str(chr);
+                }
+            }
+            return utf8ToUtf16(buffer.join(""));
+        }
+        function utf16ToUtf8(str) {
+            var half = HALF_BYTE, sixBits = SIX_BITS, code2char = fromCharCode, utf8 = [], ul = 0, c = -1, l = str.length;
+            var code;
+            for (;l--; ) {
+                code = str.charCodeAt(++c);
+                if (code < half) {
+                    utf8[ul++] = code2char(code);
+                } else if (code < 2048) {
+                    utf8[ul++] = code2char(192 | code >> 6);
+                    utf8[ul++] = code2char(half | code & sixBits);
+                } else if (code < 55296 || code > 57343) {
+                    utf8[ul++] = code2char(224 | code >> 12);
+                    utf8[ul++] = code2char(half | code >> 6 & sixBits);
+                    utf8[ul++] = code2char(half | code & sixBits);
+                } else {
+                    l--;
+                    code = 65536 + ((code & 1023) << 10 | str.charCodeAt(++c) & 1023);
+                    utf8[ul++] = code2char(240 | code >> 18);
+                    utf8[ul++] = code2char(half | code >> 12 & sixBits);
+                    utf8[ul++] = code2char(half | code >> 6 & sixBits);
+                    utf8[ul++] = code2char(half | code >> sixBits);
+                }
+            }
+            return utf8.join("");
+        }
+        function utf8ToUtf16(str) {
+            var half = HALF_BYTE, sixBits = SIX_BITS, code2char = fromCharCode, utf16 = [], M = Math, min = M.min, max = M.max, ul = 0, l = str.length, c = -1;
+            var code, whatsLeft;
+            for (;l--; ) {
+                code = str.charCodeAt(++c);
+                if (code < half) {
+                    utf16[ul++] = code2char(code);
+                } else if (code > 191 && code < 224) {
+                    utf16[ul++] = code2char((code & 31) << 6 | str.charCodeAt(c + 1) & sixBits);
+                    whatsLeft = max(min(l - 1, 1), 0);
+                    c += whatsLeft;
+                    l -= whatsLeft;
+                } else if (code > 223 && code < 240) {
+                    utf16[ul++] = code2char((code & 15) << 12 | (str.charCodeAt(c + 1) & sixBits) << 6 | str.charCodeAt(c + 2) & sixBits);
+                    whatsLeft = max(min(l - 2, 2), 0);
+                    c += whatsLeft;
+                    l -= whatsLeft;
+                } else {
+                    code = ((code & 7) << 18 | (str.charCodeAt(c + 1) & sixBits) << 12 | (str.charCodeAt(c + 2) & sixBits) << 6 | str.charCodeAt(c + 3) & sixBits) - 65536;
+                    utf16[ul++] = code2char(code >> 10 | 55296, code & 1023 | 56320);
+                    whatsLeft = max(min(l - 3, 3), 0);
+                    c += whatsLeft;
+                    l -= whatsLeft;
+                }
+            }
+            return utf16.join("");
+        }
+        function parseJsonPath(path) {
+            var dimensions = [], dl = 0, buffer = [], bl = dl, TRUE = true, FALSE = false, started = FALSE, merge = FALSE;
+            var c, l, item, last;
+            for (c = -1, l = path.length; l--; ) {
+                item = path.charAt(++c);
+                last = !l;
+                if (item === "[") {
+                    if (started) {
+                        break;
+                    }
+                    started = TRUE;
+                    if (bl) {
+                        merge = TRUE;
+                    }
+                } else if (item === "]") {
+                    if (!started) {
+                        break;
+                    }
+                    started = FALSE;
+                    merge = TRUE;
+                } else {
+                    buffer[bl++] = item;
+                    if (last) {
+                        merge = TRUE;
+                    }
+                }
+                if (merge) {
+                    dimensions[dl++] = buffer.join("");
+                    buffer.length = bl = 0;
+                    merge = FALSE;
+                }
+                if (last) {
+                    if (started || dl < 1) {
+                        break;
+                    }
+                    return dimensions;
+                }
+            }
+            return null;
+        }
+        module.exports = {
+            encode64: base64Encode,
+            decode64: base64Decode,
+            utf2bin: utf16ToUtf8,
+            bin2utf: utf8ToUtf16,
+            jsonPath: parseJsonPath
         };
     }, function(module, exports, __webpack_require__) {
         (function(global) {
             "use strict";
-            var TYPE = __webpack_require__(9), G = global, NAME_RE = /^(([^\.]+\.)*)((before|after)\:)?([a-zA-Z0-9\_\-\.]+)$/, POSITION_BEFORE = 1, POSITION_AFTER = 2, RUNNERS = {}, NAMESPACES = {}, EXPORTS = {
+            var TYPE = __webpack_require__(10), G = global, NAME_RE = /^(([^\.]+\.)*)((before|after)\:)?([a-zA-Z0-9\_\-\.]+)$/, POSITION_BEFORE = 1, POSITION_AFTER = 2, RUNNERS = {}, NAMESPACES = {}, EXPORTS = {
                 register: set,
                 run: run,
                 middleware: middlewareNamespace,
@@ -765,8 +922,105 @@
         }());
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var TYPE = __webpack_require__(9), OBJECT = __webpack_require__(10);
-        function create() {}
+        var DETECT = __webpack_require__(7), OBJECT = __webpack_require__(9), A = Array.prototype;
+        function indexOf(subject) {
+            var array = this, l = array.length, c = -1;
+            for (;l--; ) {
+                if (subject === array[++c]) {
+                    array = null;
+                    return c;
+                }
+            }
+            return -1;
+        }
+        function lastIndexOf(subject) {
+            var array = this, l = array.length;
+            for (;l--; ) {
+                if (subject === array[l]) {
+                    array = null;
+                    return l;
+                }
+            }
+            return -1;
+        }
+        function union(array, array2, clone) {
+            var subject, l, len, total;
+            array = clone !== false ? array : array.slice(0);
+            array.push.apply(array, array2);
+            total = array.length;
+            found: for (l = total; l--; ) {
+                subject = array[l];
+                for (len = total; len--; ) {
+                    if (l !== len && subject === array[len]) {
+                        total--;
+                        array.splice(l, 1);
+                        continue found;
+                    }
+                }
+            }
+            return array;
+        }
+        function intersect(array1, array2, clone) {
+            var total1 = array1.length, total2 = array2.length;
+            var subject, l1, l2;
+            array1 = clone !== false ? array1 : array1.slice(0);
+            found: for (l1 = total1; l1--; ) {
+                subject = array1[l1];
+                foundSame: for (l2 = total2; l2--; ) {
+                    if (subject === array2[l2]) {
+                        for (l2 = total1; l2--; ) {
+                            if (l2 !== l1 && subject === array1[l2]) {
+                                break foundSame;
+                            }
+                        }
+                        continue found;
+                    }
+                }
+                array1.splice(l1, 1);
+                total1--;
+            }
+            return array1;
+        }
+        function difference(array1, array2, clone) {
+            var total1 = array1.length, total2 = array2.length;
+            var subject, l1, l2;
+            array1 = clone !== false ? array1 : array1.slice(0);
+            found: for (l1 = total1; l1--; ) {
+                subject = array1[l1];
+                for (l2 = total2; l2--; ) {
+                    if (subject === array2[l2]) {
+                        array1.splice(l1, 1);
+                        total1--;
+                        continue found;
+                    }
+                }
+                for (l2 = total1; l2--; ) {
+                    if (l2 !== l1 && subject === array1[l2]) {
+                        array1.splice(l1, 1);
+                        total1--;
+                        continue found;
+                    }
+                }
+            }
+            return array1;
+        }
+        if (!DETECT.indexOfSupport) {
+            OBJECT.assign(A, {
+                indexOf: indexOf,
+                lastIndexOf: lastIndexOf
+            });
+        }
+        module.exports = {
+            unionList: union,
+            intersectList: intersect,
+            differenceList: difference
+        };
+    }, function(module, exports, __webpack_require__) {
+        "use strict";
+        var TYPE = __webpack_require__(10), OBJECT = __webpack_require__(9);
+        function create() {
+            return new Registry();
+        }
         function Registry() {
             this.data = {};
         }
@@ -793,6 +1047,9 @@
                 }
                 return this;
             },
+            exists: function(name) {
+                return OBJECT.contains(this.data, name);
+            },
             clear: function() {
                 OBJECT.clear(this.data);
                 return this;
@@ -808,7 +1065,7 @@
     }, function(module, exports, __webpack_require__) {
         (function(global) {
             "use strict";
-            var TYPE = __webpack_require__(9), OBJECT = __webpack_require__(10), PROCESSOR = __webpack_require__(12), slice = Array.prototype.slice, G = global, INDEX_STATUS = 0, INDEX_DATA = 1, INDEX_PENDING = 2;
+            var TYPE = __webpack_require__(10), OBJECT = __webpack_require__(9), PROCESSOR = __webpack_require__(12), slice = Array.prototype.slice, G = global, INDEX_STATUS = 0, INDEX_DATA = 1, INDEX_PENDING = 2;
             function isPromise(object) {
                 var T = TYPE;
                 return T.object(object) && T.method(object.then);
@@ -816,7 +1073,7 @@
             function createPromise(instance) {
                 var Class = Promise;
                 if (!(instance instanceof Class)) {
-                    instance = OBJECT.buildInstance(Class);
+                    instance = OBJECT.instantiate(Class);
                 }
                 instance.__state = [ null, void 0, [], null, null ];
                 return instance;
@@ -976,15 +1233,15 @@
         }());
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var browser = __webpack_require__(16), EXPORTS = false;
+        var browser = __webpack_require__(17), EXPORTS = false;
         if (browser) {
             EXPORTS = {
                 browser: browser,
-                event: __webpack_require__(17),
-                dom: __webpack_require__(18),
-                css: __webpack_require__(19),
-                dimension: __webpack_require__(20),
-                selection: __webpack_require__(21)
+                event: __webpack_require__(18),
+                dom: __webpack_require__(19),
+                css: __webpack_require__(20),
+                dimension: __webpack_require__(21),
+                selection: __webpack_require__(22)
             };
         }
         module.exports = EXPORTS;
@@ -1074,7 +1331,7 @@
     }, function(module, exports, __webpack_require__) {
         (function(global) {
             "use strict";
-            var DETECTED = __webpack_require__(16), WINDOW = global.window, ieVersion = DETECTED.ieVersion;
+            var DETECTED = __webpack_require__(17), WINDOW = global.window, ieVersion = DETECTED.ieVersion;
             module.exports = {
                 screensize: typeof WINDOW.innerWidth !== "undefined",
                 pagescroll: typeof WINDOW.pageXOffset !== "undefined",
@@ -1100,11 +1357,140 @@
             return this;
         }());
     }, function(module, exports, __webpack_require__) {
+        (function(global) {
+            "use strict";
+            var CORE = __webpack_require__(5), SEPARATE_RE = /[ \r\n\t]*[ \r\n\t]+[ \r\n\t]*/, CAMEL_RE = /[^a-z]+[a-z]/gi, STYLIZE_RE = /^([Mm]oz|[Ww]ebkit|[Mm]s|[oO])[A-Z]/, HTML_ESCAPE_CHARS_RE = /[^\u0021-\u007e]|[\u003e\u003c\&\"\']/g, TEXTAREA = global.document.createElement("textarea"), EXPORTS = {
+                camelize: camelize,
+                stylize: stylize,
+                addWord: addWord,
+                removeWord: removeWord,
+                xmlEncode: htmlescape,
+                xmlDecode: htmlunescape,
+                1001: "Invalid [name] parameter.",
+                1011: "Invalid [handler] parameter.",
+                1101: "Invalid DOM [element] parameter.",
+                1102: "Invalid [dom] Object parameter.",
+                1103: "Invalid DOM [node] parameter.",
+                1104: "Invalid DOM [document] parameter.",
+                1111: "Invalid CSS [selector] parameter.",
+                1112: "Invalid tree traverse [callback] parameter.",
+                1121: "Invalid DOM Element [config] parameter.",
+                1131: "Invalid [observable] parameter.",
+                1132: "Invalid Event [type] parameter.",
+                1133: "Invalid Event [handler] parameter.",
+                1141: "Invalid [style] Rule parameter.",
+                1151: "Invalid Animation [handler] parameter.",
+                1152: "Invalid Animation [displacements] parameter.",
+                2001: "Style Attribute manipulation is not supported",
+                2002: "Computed style is not supported by this browser.",
+                2003: "CSS Selector query form DOM is not supported.",
+                2004: "DOM position comparison is not supported.",
+                2005: "DOM selection not supported.",
+                2006: "CSS Opacity is not supported by this browser"
+            };
+            function camelize(str) {
+                return str.replace(CAMEL_RE, onCamelizeMatch);
+            }
+            function onCamelizeMatch(all) {
+                return all[all.length - 1].toUpperCase();
+            }
+            function onStylizeMatch(all, match) {
+                var found = match.toLowerCase(), len = found.length;
+                if (found === "moz") {
+                    found = "Moz";
+                }
+                return found + all.substring(len, all.length);
+            }
+            function stylize(str) {
+                return camelize(str).replace(STYLIZE_RE, onStylizeMatch);
+            }
+            function addWord(str, items) {
+                var isString = CORE.string, c = -1, l = items.length;
+                var cl, name;
+                str = str.split(SEPARATE_RE);
+                cl = str.length;
+                for (;l--; ) {
+                    name = items[++c];
+                    if (isString(name) && str.indexOf(name) === -1) {
+                        str[cl++] = name;
+                    }
+                }
+                return str.join(" ");
+            }
+            function removeWord(str, items) {
+                var c = -1, l = items.length;
+                var cl, total, name;
+                str = str.split(SEPARATE_RE);
+                total = str.length;
+                for (;l--; ) {
+                    name = items[++c];
+                    for (cl = total; cl--; ) {
+                        if (name === str[cl]) {
+                            str.splice(cl, 1);
+                            total--;
+                        }
+                    }
+                }
+                return str.join(" ");
+            }
+            function htmlunescape(str) {
+                var textarea = TEXTAREA;
+                var value = "";
+                if (textarea) {
+                    textarea.innerHTML = str;
+                    value = textarea.value;
+                }
+                textarea = null;
+                return value;
+            }
+            function htmlescape(str) {
+                return str.replace(HTML_ESCAPE_CHARS_RE, htmlescapeCallback);
+            }
+            function htmlescapeCallback(chr) {
+                var code = chr.charCodeAt(0).toString(16);
+                var value;
+                switch (code) {
+                  case "26":
+                    value = "amp";
+                    break;
+
+                  case "22":
+                    value = "quot";
+                    break;
+
+                  case "27":
+                    value = "apos";
+                    break;
+
+                  case "3C":
+                  case "3c":
+                    value = "lt";
+                    break;
+
+                  case "3E":
+                  case "3e":
+                    value = "gt";
+                    break;
+
+                  default:
+                    value = "#x" + code;
+                }
+                return "&" + value + ";";
+            }
+            function onDestroy() {
+                TEXTAREA = null;
+            }
+            CORE.register("libdom.event.global-destroy", onDestroy);
+            module.exports = EXPORTS;
+        }).call(exports, function() {
+            return this;
+        }());
+    }, function(module, exports, __webpack_require__) {
         "use strict";
-        var CORE = __webpack_require__(5), DETECTED = __webpack_require__(15), STRING = __webpack_require__(23), ORDER_TYPE_PREORDER = 1, ORDER_TYPE_POSTORDER = 2, ORDER_TYPE_LEVELORDER = 3, ERROR_INVALID_DOM = STRING[1101], ERROR_INVALID_DOM_NODE = STRING[1103], ERROR_INVALID_CSS_SELECTOR = STRING[1111], ERROR_INVALID_CALLBACK = STRING[1112], ERROR_INVALID_ELEMENT_CONFIG = STRING[1121], INVALID_DESCENDANT_NODE_TYPES = {
+        var CORE = __webpack_require__(5), DETECTED = __webpack_require__(16), EVENT = __webpack_require__(25), STRING = __webpack_require__(23), ORDER_TYPE_PREORDER = 1, ORDER_TYPE_POSTORDER = 2, ORDER_TYPE_LEVELORDER = 3, ERROR_INVALID_DOM = STRING[1101], ERROR_INVALID_DOM_NODE = STRING[1103], ERROR_INVALID_CSS_SELECTOR = STRING[1111], ERROR_INVALID_CALLBACK = STRING[1112], ERROR_INVALID_ELEMENT_CONFIG = STRING[1121], INVALID_DESCENDANT_NODE_TYPES = {
             9: 1,
             11: 1
-        }, STD_CONTAINS = notSupportedContains, MANIPULATION_HELPERS = {}, EXPORTS = {
+        }, STD_CONTAINS = notSupportedContains, DOM_ATTRIBUTE_RE = /(^\_|[^a-zA-Z\_])/, DOM_ATTRIBUTE_LIST = [ "nodeType", "nodeValue", "ownerDocument", "tagName", "attributes", "parentNode", "childNodes", "firstChild", "lastChild", "previousSibling", "nextSibling", "sourceIndex", "type" ], EVENT_ATTRIBUTE_RE = /^on(\-?[a-zA-Z].+)?$/, MANIPULATION_HELPERS = CORE.createRegistry(), EXPORTS = {
             contains: contains,
             is: isDom,
             isView: isDefaultView,
@@ -1115,6 +1501,8 @@
             select: notSupportedQuerySelector,
             helper: registerDomHelper,
             add: add,
+            replace: replace,
+            move: move,
             remove: remove,
             find: find
         };
@@ -1155,40 +1543,101 @@
             if (!C.method(handler)) {
                 throw new Error(STRING[1011]);
             }
-            MANIPULATION_HELPERS[":" + name] = handler;
+            MANIPULATION_HELPERS.set(name, handler);
             return EXPORTS.chain;
         }
         function add(element, config, before) {
-            var tagName, toInsert;
+            var toInsert = null, invalidConfig = ERROR_INVALID_ELEMENT_CONFIG, is = isDom;
+            var tagName;
             if (!isDom(element, 1, 11)) {
                 throw new Error(ERROR_INVALID_DOM);
             }
-            tagName = getTagNameFromConfig(config);
-            if (!tagName) {
-                throw new Error(ERROR_INVALID_ELEMENT_CONFIG);
-            }
-            toInsert = config;
-            if (CORE.object(config)) {
+            if (is(config)) {
+                toInsert = config;
+            } else if (CORE.object(config)) {
+                tagName = getTagNameFromConfig(config);
+                if (!tagName) {
+                    throw new Error(invalidConfig);
+                }
                 toInsert = element.ownerDocument.createElement(tagName);
                 applyConfigToElement(toInsert, config);
             }
-            if (!isDom(toInsert)) {
-                throw new Error(ERROR_INVALID_ELEMENT_CONFIG);
+            if (!is(toInsert, 1, 3, 4, 7, 8)) {
+                throw new Error(invalidConfig);
             }
             element.insertBefore(toInsert, findChild(element, before));
             return toInsert;
         }
-        function remove(element) {
+        function remove(node) {
             var parentNode;
-            if (!isDom(element, 1, 3, 4, 7, 8)) {
-                throw new Error(ERROR_INVALID_DOM);
+            if (!isDom(node, 1, 3, 4, 7, 8)) {
+                throw new Error(ERROR_INVALID_DOM_NODE);
             }
-            parentNode = element.parentNode;
+            if (node.nodeType === 1) {
+                postOrderTraverse(node, purgeEventsFrom);
+            }
+            parentNode = node.parentNode;
             if (parentNode) {
-                parentNode.removeChild(element);
+                parentNode.removeChild(node);
             }
             parentNode = null;
+            return node;
+        }
+        function move(nodes, element) {
+            var is = isDom, invalidDom = ERROR_INVALID_DOM_NODE, created = false;
+            var c, l, fragment, newChild;
+            if (!is(element, 1)) {
+                throw new Error(ERROR_INVALID_DOM);
+            }
+            if (is(nodes, 1, 3, 4, 7, 8)) {
+                nodes = [ nodes ];
+                created = true;
+            }
+            if (!CORE.array(nodes)) {
+                throw new Error(invalidDom);
+            }
+            fragment = element.ownerDocument.createDocumentFragment();
+            for (c = -1, l = nodes.length; l--; ) {
+                newChild = nodes[++c];
+                if (is(newChild, 1, 3, 4, 7, 8)) {
+                    fragment.appendChild(newChild);
+                }
+            }
+            element.appendChild(fragment);
+            newChild = null;
+            if (created) {
+                nodes.splice(0, nodes.length);
+            }
+            fragment = null;
             return element;
+        }
+        function replace(node, config) {
+            var toInsert = null, invalidConfig = ERROR_INVALID_ELEMENT_CONFIG, is = isDom;
+            var tagName;
+            if (!is(node, 1, 3, 4, 7, 8) || !node.parentNode) {
+                throw new Error(ERROR_INVALID_DOM_NODE);
+            }
+            if (is(config)) {
+                toInsert = config;
+            } else if (CORE.object(config)) {
+                tagName = getTagNameFromConfig(config);
+                if (!tagName) {
+                    throw new Error(invalidConfig);
+                }
+                toInsert = node.ownerDocument.createElement(tagName);
+                applyConfigToElement(toInsert, config);
+            }
+            if (!is(toInsert, 1, 3, 4, 7, 8)) {
+                throw new Error(invalidConfig);
+            }
+            if (node.nodeType === 1) {
+                postOrderTraverse(node, purgeEventsFrom);
+            }
+            node.parentNode.replaceChild(toInsert, node);
+            return toInsert;
+        }
+        function purgeEventsFrom(element) {
+            EVENT.purge(element);
         }
         function find(element, node) {
             if (!isDom(element, 1, 11)) {
@@ -1199,53 +1648,91 @@
         function getTagNameFromConfig(config) {
             var C = CORE;
             if (C.object(config)) {
-                config = config.tagName;
+                config = config.tagName || config.nodeNode || config.tag;
             }
             return C.string(config) ? config : false;
         }
+        function applyAttributeToElement(value, name) {
+            var element = this, C = CORE, helper = MANIPULATION_HELPERS;
+            var listen;
+            switch (name) {
+              case "class":
+                name = "className";
+                break;
+
+              case "for":
+                name = "htmlFor";
+                break;
+            }
+            if (EVENT_ATTRIBUTE_RE.test(name)) {
+                listen = name.substring(name.charAt(2) === "-" ? 3 : 2, name.length);
+                if (listen === "on" && C.object(value)) {
+                    C.each(value, applyEventAttribute, element);
+                } else {
+                    applyEventAttribute.call(element, value, listen);
+                }
+            } else if (helper.exists(name)) {
+                helper(name)(element, value);
+            } else if (DOM_ATTRIBUTE_RE.test(name) || DOM_ATTRIBUTE_LIST.indexOf(name) !== -1) {
+                element.setAttribute(name, value);
+            } else {
+                element[name] = value;
+            }
+            element = null;
+        }
+        function applyEventAttribute(handler, name) {
+            var element = this;
+            if (CORE.method(handler)) {
+                EVENT.on(element, name, handler);
+            }
+            element = null;
+        }
         function applyConfigToElement(element, config, usedFragment) {
-            var C = CORE, hasOwn = C.contains, isObject = C.object, me = applyConfigToElement, resolveTagName = getTagNameFromConfig, helper = MANIPULATION_HELPERS;
-            var name, value, item, access, childNodes, c, l, fragment, doc, created;
+            var C = CORE, hasOwn = C.contains, isObject = C.object, me = applyConfigToElement, resolveTagName = getTagNameFromConfig, applyAttribute = applyAttributeToElement, htmlEncodeChild = false, childNodes = null;
+            var name, value, item, c, l, fragment, doc, created;
             if (isObject(config)) {
                 childNodes = null;
                 main: for (name in config) {
-                    if (hasOwn(name, config)) {
+                    if (hasOwn(config, name)) {
                         value = config[name];
                         switch (name) {
                           case "tagName":
+                          case "nodeName":
+                          case "tag":
                             continue main;
 
-                          case "class":
-                            name = "className";
-                            break;
-
-                          case "for":
-                            name = "htmlFor";
-                            break;
+                          case "text":
+                          case "childText":
+                          case "innerText":
+                            htmlEncodeChild = true;
 
                           case "childNodes":
                           case "innerHTML":
                           case "html":
                             childNodes = value;
                             continue main;
-                        }
-                        access = ":" + name;
-                        if (access in helper) {
-                            helper[name](element, value);
+
+                          case "attributes":
+                            if (isObject(value)) {
+                                C.each(value, applyAttribute, element);
+                            }
                             continue;
                         }
-                        element[name] = value;
+                        applyAttribute.call(element, value, name);
                     }
                 }
                 if (C.string(childNodes)) {
+                    if (htmlEncodeChild) {
+                        childNodes = STRING.xmlEncode(childNodes);
+                    }
                     element.innerHTML = childNodes;
-                } else {
+                } else if (!htmlEncodeChild) {
                     if (isObject(childNodes)) {
                         childNodes = [ childNodes ];
                     }
                     if (C.array(childNodes)) {
                         doc = element.ownerDocument;
-                        fragment = usedFragment === true ? doc.createDocumentFragment() : element;
+                        fragment = usedFragment === true ? element : doc.createDocumentFragment();
                         for (c = -1, l = childNodes.length; l--; ) {
                             item = childNodes[++c];
                             if (isObject(item)) {
@@ -1422,84 +1909,339 @@
         }
         module.exports = EXPORTS.chain = EXPORTS;
     }, function(module, exports, __webpack_require__) {
-        "use strict";
-        var CORE = __webpack_require__(5), SEPARATE_RE = /[ \r\n\t]*[ \r\n\t]+[ \r\n\t]*/, CAMEL_RE = /[^a-z]+[a-z]/gi, STYLIZE_RE = /^([Mm]oz|[Ww]ebkit|[Mm]s|[oO])[A-Z]/, EXPORTS = {
-            camelize: camelize,
-            stylize: stylize,
-            addWord: addWord,
-            removeWord: removeWord,
-            1001: "Invalid [name] parameter.",
-            1011: "Invalid [handler] parameter.",
-            1101: "Invalid DOM [element] parameter.",
-            1102: "Invalid [dom] Object parameter.",
-            1103: "Invalid DOM [node] parameter.",
-            1104: "Invalid DOM [document] parameter.",
-            1111: "Invalid CSS [selector] parameter.",
-            1112: "Invalid tree traverse [callback] parameter.",
-            1121: "Invalid DOM Element [config] parameter.",
-            1131: "Invalid [observable] parameter.",
-            1132: "Invalid Event [type] parameter.",
-            1133: "Invalid Event [handler] parameter.",
-            1141: "Invalid [style] Rule parameter.",
-            1151: "Invalid Animation [handler] parameter.",
-            1152: "Invalid Animation [displacements] parameter.",
-            2001: "Style Attribute manipulation is not supported",
-            2002: "Computed style is not supported by this browser.",
-            2003: "CSS Selector query form DOM is not supported.",
-            2004: "DOM position comparison is not supported.",
-            2005: "DOM selection not supported.",
-            2006: "CSS Opacity is not supported by this browser"
-        };
-        function camelize(str) {
-            return str.replace(CAMEL_RE, onCamelizeMatch);
-        }
-        function onCamelizeMatch(all) {
-            return all[all.length - 1].toUpperCase();
-        }
-        function onStylizeMatch(all, match) {
-            var found = match.toLowerCase(), len = found.length;
-            if (found === "moz") {
-                found = "Moz";
-            }
-            return found + all.substring(len, all.length);
-        }
-        function stylize(str) {
-            return camelize(str).replace(STYLIZE_RE, onStylizeMatch);
-        }
-        function addWord(str, items) {
-            var isString = CORE.string, c = -1, l = items.length;
-            var cl, name;
-            str = str.split(SEPARATE_RE);
-            cl = str.length;
-            for (;l--; ) {
-                name = items[++c];
-                if (isString(name) && str.indexOf(name) === -1) {
-                    str[cl++] = name;
+        (function(global) {
+            "use strict";
+            var CORE = __webpack_require__(5), INFO = __webpack_require__(16), STRING = __webpack_require__(23), EVENTS = null, PAGE_UNLOADED = false, MIDDLEWARE = CORE.middleware("libdom.event"), IE_CUSTOM_EVENTS = {}, ERROR_OBSERVABLE_NO_SUPPORT = STRING[1131], ERROR_INVALID_TYPE = STRING[1132], ERROR_INVALID_HANDLER = STRING[1133], IE_ON = "on", IE_BUBBLE_EVENT = "beforeupdate", IE_NO_BUBBLE_EVENT = "propertychange", EXPORTS = module.exports = {
+                on: listen,
+                un: unlisten,
+                fire: dispatch,
+                purge: purge,
+                ondestroy: addDestructor
+            };
+            var RESOLVE, LISTEN, UNLISTEN, DISPATCH, EVENT_INFO, IS_CAPABLE, SUBJECT;
+            function listen(observable, type, handler, context) {
+                var last = EVENTS, C = CORE;
+                var current, args;
+                if (!C.string(type)) {
+                    throw new Error(ERROR_INVALID_TYPE);
                 }
+                if (!C.method(handler)) {
+                    throw new Error(ERROR_INVALID_HANDLER);
+                }
+                observable = RESOLVE(observable);
+                if (!observable) {
+                    throw new Error(ERROR_OBSERVABLE_NO_SUPPORT);
+                }
+                if (typeof context === "undefined") {
+                    context = null;
+                }
+                args = [ observable, type, handler, context ];
+                MIDDLEWARE.run("listen", args);
+                observable = args[0];
+                type = args[1];
+                handler = args[2];
+                context = args[3];
+                args.splice(0, 4);
+                args = null;
+                current = LISTEN(observable, type, handler, context);
+                current.unlisten = createUnlistener(current);
+                current.head = last;
+                current.tail = null;
+                if (last) {
+                    last.tail = current;
+                }
+                EVENTS = current;
+                return current.unlisten;
             }
-            return str.join(" ");
-        }
-        function removeWord(str, items) {
-            var c = -1, l = items.length;
-            var cl, total, name;
-            str = str.split(SEPARATE_RE);
-            total = str.length;
-            for (;l--; ) {
-                name = items[++c];
-                for (cl = total; cl--; ) {
-                    if (name === str[cl]) {
-                        str.splice(cl, 1);
-                        total--;
+            function unlisten(observable, type, handler, context) {
+                var C = CORE;
+                var found, len, args;
+                if (!C.string(type)) {
+                    throw new Error(ERROR_INVALID_TYPE);
+                }
+                if (!C.method(handler)) {
+                    throw new Error(ERROR_INVALID_HANDLER);
+                }
+                observable = RESOLVE(observable);
+                if (!observable) {
+                    throw new Error(ERROR_OBSERVABLE_NO_SUPPORT);
+                }
+                if (typeof context === "undefined") {
+                    context = null;
+                }
+                args = [ observable, type, handler, context ];
+                MIDDLEWARE.run("unlisten", args);
+                observable = args[0];
+                type = args[1];
+                handler = args[2];
+                context = args[3];
+                args.splice(0, 4);
+                args = null;
+                found = filter(observable, type, handler, context);
+                for (len = found.length; len--; ) {
+                    found[len].unlisten();
+                }
+                return EXPORTS.chain;
+            }
+            function dispatch(observable, type, defaults) {
+                if (!CORE.string(type)) {
+                    throw new Error(ERROR_INVALID_TYPE);
+                }
+                observable = RESOLVE(observable);
+                if (!observable) {
+                    throw new Error(ERROR_OBSERVABLE_NO_SUPPORT);
+                }
+                return DISPATCH(observable, type, defaults);
+            }
+            function purge() {
+                var found = filter.apply(null, arguments), len = found.length;
+                for (;len--; ) {
+                    found[len].unlisten();
+                }
+                return EXPORTS.chain;
+            }
+            function createUnlistener(event) {
+                var destroyed = false;
+                function destroy() {
+                    var head, tail;
+                    if (!destroyed) {
+                        destroyed = true;
+                        UNLISTEN(event[0], event[1], event[4]);
+                        head = event.head;
+                        tail = event.tail;
+                        if (head) {
+                            head.tail = tail;
+                        }
+                        if (tail) {
+                            tail.head = head;
+                        }
+                        if (event === EVENTS) {
+                            EVENTS = tail || head;
+                        }
+                        event[0] = null;
+                        event.splice(0, 4);
+                        delete event.unlisten;
+                        delete event.head;
+                        delete event.tail;
+                        event = head = tail = null;
                     }
                 }
+                return destroy;
             }
-            return str.join(" ");
-        }
-        module.exports = EXPORTS;
+            function filter(observable, type, handler, context) {
+                var last = EVENTS, found = [], len = 0, argLen = arguments.length, HAS_OBSERVABLE = 0, HAS_TYPE = 0, HAS_HANDLER = 0, HAS_CONTEXT = 0;
+                switch (true) {
+                  case argLen > 3:
+                    HAS_CONTEXT = 1;
+
+                  case argLen > 2:
+                    HAS_HANDLER = 1;
+
+                  case argLen > 1:
+                    HAS_TYPE = 1;
+
+                  case argLen > 0:
+                    HAS_OBSERVABLE = 1;
+                }
+                for (;last; last = last.head) {
+                    if (HAS_OBSERVABLE && last[0] !== observable || HAS_TYPE && last[1] !== type || HAS_HANDLER && last[2] !== handler || HAS_CONTEXT && last[3] !== context) {
+                        continue;
+                    }
+                    found[len++] = last;
+                }
+                return found;
+            }
+            function w3cListen(observable, type, handler, context) {
+                var listener = w3cCreateHandler(handler, context);
+                observable.addEventListener(type, listener, false);
+                return [ observable, type, handler, context, listener ];
+            }
+            function w3cUnlisten(observable, type, listener) {
+                observable.removeEventListener(type, listener, false);
+            }
+            function w3cDispatch(observable, type, properties) {
+                var hasOwn = CORE.contains, event = global.document.createEvent("Event");
+                var name;
+                event.initEvent(type, properties.bubbles === true, properties.cancelable !== false);
+                for (name in properties) {
+                    if (hasOwn(properties, name) && !(name in event)) {
+                        event[name] = properties[name];
+                    }
+                }
+                observable.dispatchEvent(event);
+                return event;
+            }
+            function w3cObservable(observable) {
+                var isFunction = CORE.method;
+                return observable && typeof observable === "object" && isFunction(observable.addEventListener) && isFunction(observable.removeEventListener) && isFunction(observable.dispatchEvent) ? observable : false;
+            }
+            function w3cCreateHandler(handler, context) {
+                function onEvent(event) {
+                    MIDDLEWARE.run("dispatch", [ event.type, event ]);
+                    return handler.call(context, event);
+                }
+                return onEvent;
+            }
+            function ieListen(observable, type, handler, context) {
+                var on = IE_ON;
+                var listener;
+                if (ieTestCustomEvent(observable, type)) {
+                    listener = ieCreateCustomHandler(type, handler, context);
+                    observable.attachEvent(on + IE_BUBBLE_EVENT, listener);
+                    observable.attachEvent(on + IE_NO_BUBBLE_EVENT, listener);
+                } else {
+                    listener = ieCreateHandler(handler, context);
+                    observable.attachEvent(on + type, listener);
+                }
+                return [ observable, type, handler, context, listener ];
+            }
+            function ieUnlisten(observable, type, listener) {
+                var on = IE_ON;
+                if (listener.customType) {
+                    observable.detachEvent(on + IE_BUBBLE_EVENT, listener);
+                    observable.detachEvent(on + IE_NO_BUBBLE_EVENT, listener);
+                } else {
+                    observable.detachEvent(on + type, listener);
+                }
+            }
+            function ieDispatch(observable, type, properties) {
+                var hasOwn = CORE.contains, event = global.document.createEventObject();
+                var name;
+                for (name in properties) {
+                    if (hasOwn(properties, name) && !(name in event)) {
+                        event[name] = properties[name];
+                    }
+                }
+                if (ieTestCustomEvent(observable, type)) {
+                    event.customType = type;
+                    type = properties.bubbles === true ? IE_BUBBLE_EVENT : IE_NO_BUBBLE_EVENT;
+                }
+                name = IE_ON + type;
+                observable.fireEvent(name, event);
+                if (properties.cancelable === false) {
+                    event.returnValue = true;
+                }
+                return event;
+            }
+            function ieObservable(observable) {
+                if (observable) {
+                    observable = observable.window ? observable.self : observable;
+                    if (observable.attachEvent && observable.detachEvent) {
+                        return observable;
+                    }
+                }
+                return false;
+            }
+            function ieCreateHandler(handler, context) {
+                function onEvent() {
+                    var event = global.event;
+                    iePolyfillEvent(event);
+                    MIDDLEWARE.run("dispatch", [ event.type, event ]);
+                    return handler.call(context, event);
+                }
+                return onEvent;
+            }
+            function ieCreateCustomHandler(type, handler, context) {
+                function onEvent() {
+                    var event = global.event;
+                    iePolyfillEvent(event);
+                    if (event.customType === type) {
+                        MIDDLEWARE.run("dispatch", [ type, event ]);
+                        event.type = type;
+                        return handler.call(context, event);
+                    }
+                }
+                onEvent.customType = true;
+                return onEvent;
+            }
+            function iePreventDefault() {
+                this.returnValue = false;
+            }
+            function ieStopPropagation() {
+                this.cancelBubble = true;
+            }
+            function iePolyfillEvent(eventObject) {
+                eventObject.target = eventObject.target || eventObject.srcElement;
+                if (!("preventDefault" in eventObject)) {
+                    eventObject.preventDefault = iePreventDefault;
+                }
+                if (!("stopPropagation" in eventObject)) {
+                    eventObject.stopPropagation = ieStopPropagation;
+                }
+            }
+            function ieTestCustomEvent(observable, type) {
+                var supported = false, list = IE_CUSTOM_EVENTS;
+                var element, access, ontype;
+                if (observable.nodeType === 9) {
+                    observable = observable.documentElement;
+                }
+                if (observable.nodeType === 1) {
+                    access = observable.tagName + ":" + type;
+                    if (access in list) {
+                        return list[access];
+                    }
+                    ontype = IE_ON + type;
+                    element = observable.cloneNode(false);
+                    supported = ontype in element;
+                    if (!supported) {
+                        element.setAttribute(ontype, "return;");
+                        supported = typeof element[ontype] === "function";
+                    }
+                    element = null;
+                    list[access] = !supported;
+                    return !supported;
+                }
+                return false;
+            }
+            function onBeforeUnload() {
+                if (!PAGE_UNLOADED) {
+                    PAGE_UNLOADED = true;
+                    MIDDLEWARE.run("global-destroy", []);
+                    purge();
+                }
+            }
+            function addDestructor(handler) {
+                if (CORE.method(handler)) {
+                    MIDDLEWARE.register("global-destroy", handler);
+                }
+            }
+            RESOLVE = LISTEN = UNLISTEN = DISPATCH;
+            EVENT_INFO = INFO && INFO.event;
+            if (EVENT_INFO) {
+                IS_CAPABLE = true;
+                switch (true) {
+                  case EVENT_INFO.w3c:
+                    LISTEN = w3cListen;
+                    UNLISTEN = w3cUnlisten;
+                    DISPATCH = w3cDispatch;
+                    RESOLVE = w3cObservable;
+                    break;
+
+                  case EVENT_INFO.ie:
+                    LISTEN = ieListen;
+                    UNLISTEN = ieUnlisten;
+                    DISPATCH = ieDispatch;
+                    RESOLVE = ieObservable;
+                    break;
+
+                  default:
+                    IS_CAPABLE = false;
+                }
+                if (IS_CAPABLE) {
+                    SUBJECT = global;
+                    listen(SUBJECT, "beforeunload", onBeforeUnload);
+                    listen(SUBJECT, "unload", onBeforeUnload);
+                    SUBJECT = null;
+                }
+            }
+            EXPORTS.chain = EXPORTS;
+        }).call(exports, function() {
+            return this;
+        }());
     }, function(module, exports, __webpack_require__) {
         (function(global) {
             "use strict";
-            var CORE = __webpack_require__(5), STRING = __webpack_require__(23), DETECTED = __webpack_require__(15), DOM = __webpack_require__(22), COLOR = __webpack_require__(25), PADDING_BOTTOM = "paddingBottom", PADDING_TOP = "paddingTop", PADDING_LEFT = "paddingLeft", PADDING_RIGHT = "paddingRight", OFFSET_LEFT = "offsetLeft", OFFSET_TOP = "offsetTop", OFFSET_WIDTH = "offsetWidth", OFFSET_HEIGHT = "offsetHeight", CLIENT_WIDTH = "clientWidth", CLIENT_HEIGHT = "clientHeight", COLOR_RE = /[Cc]olor$/, EM_OR_PERCENT_RE = /%|em/, CSS_MEASUREMENT_RE = /^([0-9]*\.?[0-9]+|[0-9]+\.?[0-9]*)(em|px|\%|pt|vh|vw|cm|ex|in|mm|pc|vmin)$/, WIDTH_RE = /width/i, NUMBER_RE = /\d/, BOX_RE = /(top|bottom|left|right|width|height)$/, DIMENSION_RE = /([Tt]op|[Bb]ottom|[Ll]eft|[Rr]ight|[wW]idth|[hH]eight|Size|Radius)$/, IE_ALPHA_OPACITY_RE = /\(opacity\=([0-9]+)\)/i, IE_ALPHA_OPACITY_TEMPLATE = "alpha(opacity=$opacity)", IE_ALPHA_OPACITY_TEMPLATE_RE = /\$opacity/, GET_OPACITY = opacityNotSupported, SET_OPACITY = opacityNotSupported, SET_STYLE = styleManipulationNotSupported, GET_STYLE = styleManipulationNotSupported, ERROR_INVALID_DOM = STRING[1101], EXPORTS = {
+            var CORE = __webpack_require__(5), STRING = __webpack_require__(23), DETECTED = __webpack_require__(16), DOM = __webpack_require__(24), COLOR = __webpack_require__(27), PADDING_BOTTOM = "paddingBottom", PADDING_TOP = "paddingTop", PADDING_LEFT = "paddingLeft", PADDING_RIGHT = "paddingRight", OFFSET_LEFT = "offsetLeft", OFFSET_TOP = "offsetTop", OFFSET_WIDTH = "offsetWidth", OFFSET_HEIGHT = "offsetHeight", CLIENT_WIDTH = "clientWidth", CLIENT_HEIGHT = "clientHeight", COLOR_RE = /[Cc]olor$/, EM_OR_PERCENT_RE = /%|em/, CSS_MEASUREMENT_RE = /^([0-9]*\.?[0-9]+|[0-9]+\.?[0-9]*)(em|px|\%|pt|vh|vw|cm|ex|in|mm|pc|vmin)$/, WIDTH_RE = /width/i, NUMBER_RE = /\d/, BOX_RE = /(top|bottom|left|right|width|height)$/, DIMENSION_RE = /([Tt]op|[Bb]ottom|[Ll]eft|[Rr]ight|[wW]idth|[hH]eight|Size|Radius)$/, IE_ALPHA_OPACITY_RE = /\(opacity\=([0-9]+)\)/i, IE_ALPHA_OPACITY_TEMPLATE = "alpha(opacity=$opacity)", IE_ALPHA_OPACITY_TEMPLATE_RE = /\$opacity/, GET_OPACITY = opacityNotSupported, SET_OPACITY = opacityNotSupported, SET_STYLE = styleManipulationNotSupported, GET_STYLE = styleManipulationNotSupported, ERROR_INVALID_DOM = STRING[1101], EXPORTS = {
                 add: addClass,
                 remove: removeClass,
                 computedStyle: computedStyleNotSupported,
@@ -1875,12 +2617,12 @@
         }());
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var CORE = __webpack_require__(5), FORMAT = __webpack_require__(26), COLOR_RE = /^(\#?|rgba?|hsla?)(\(([^\,]+(\,[^\,]+){2,3})\)|[a-f0-9]{3}|[a-f0-9]{6})$/, NUMBER_RE = /^[0-9]*\.?[0-9]+|[0-9]+\.?[0-9]*$/, REMOVE_SPACES = /[ \r\n\t\s]+/g, TO_COLOR = {
-            rgb: __webpack_require__(27),
-            rgba: __webpack_require__(28),
-            hsl: __webpack_require__(29),
-            hsla: __webpack_require__(30),
-            hex: __webpack_require__(31)
+        var CORE = __webpack_require__(5), FORMAT = __webpack_require__(28), COLOR_RE = /^(\#?|rgba?|hsla?)(\(([^\,]+(\,[^\,]+){2,3})\)|[a-f0-9]{3}|[a-f0-9]{6})$/, NUMBER_RE = /^[0-9]*\.?[0-9]+|[0-9]+\.?[0-9]*$/, REMOVE_SPACES = /[ \r\n\t\s]+/g, TO_COLOR = {
+            rgb: __webpack_require__(29),
+            rgba: __webpack_require__(30),
+            hsl: __webpack_require__(31),
+            hsla: __webpack_require__(32),
+            hex: __webpack_require__(33)
         }, EXPORTS = {
             parse: parseColorString,
             parseType: parseType,
@@ -1989,7 +2731,7 @@
         }
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var RGBA = __webpack_require__(28), CORE = __webpack_require__(5), EXPORTS = module.exports = CORE.assign({}, RGBA);
+        var RGBA = __webpack_require__(30), CORE = __webpack_require__(5), EXPORTS = module.exports = CORE.assign({}, RGBA);
         function toString(integer) {
             return "rgb(" + RGBA.toArray(integer).slice(0, 3).join(",") + ")";
         }
@@ -2000,7 +2742,7 @@
         EXPORTS.toInteger = toInteger;
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var CORE = __webpack_require__(5), FORMAT = __webpack_require__(26), BYTE = 255, BYTE_PERCENT = 127, BYTE_HUE = 511, PERCENT = 100, HUE = 360, SATURATION = PERCENT, LUMINOSITY = PERCENT;
+        var CORE = __webpack_require__(5), FORMAT = __webpack_require__(28), BYTE = 255, BYTE_PERCENT = 127, BYTE_HUE = 511, PERCENT = 100, HUE = 360, SATURATION = PERCENT, LUMINOSITY = PERCENT;
         function hue2rgb(p, q, t) {
             t = (t + 1) % 1;
             switch (true) {
@@ -2080,7 +2822,7 @@
         };
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var HSLA = __webpack_require__(29), CORE = __webpack_require__(5), EXPORTS = module.exports = CORE.assign({}, HSLA);
+        var HSLA = __webpack_require__(31), CORE = __webpack_require__(5), EXPORTS = module.exports = CORE.assign({}, HSLA);
         function toString(integer) {
             var values = HSLA.toArray(integer).slice(0, 3);
             values[1] += "%";
@@ -2090,7 +2832,7 @@
         EXPORTS.toString = toString;
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var CORE = __webpack_require__(5), FORMAT = __webpack_require__(26), BYTE = 255, BYTE_PERCENT = 127, BYTE_HUE = 511, HUE = 360, PERCENT = 100;
+        var CORE = __webpack_require__(5), FORMAT = __webpack_require__(28), BYTE = 255, BYTE_PERCENT = 127, BYTE_HUE = 511, HUE = 360, PERCENT = 100;
         function itemize(value, index, format) {
             var F = FORMAT, M = Math, percent = PERCENT, parse = parseFloat, min = 0, max = index < 1 ? HUE : percent;
             switch (format) {
@@ -2137,7 +2879,7 @@
         };
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var RGBA = __webpack_require__(28), CORE = __webpack_require__(5), EXPORTS = module.exports = CORE.assign({}, RGBA);
+        var RGBA = __webpack_require__(30), CORE = __webpack_require__(5), EXPORTS = module.exports = CORE.assign({}, RGBA);
         function toHex(integer) {
             var M = Math;
             integer = M.max(0, M.min(integer, 255));
@@ -2154,313 +2896,7 @@
     }, function(module, exports, __webpack_require__) {
         (function(global) {
             "use strict";
-            var CORE = __webpack_require__(5), INFO = __webpack_require__(15), STRING = __webpack_require__(23), EVENTS = null, PAGE_UNLOADED = false, MIDDLEWARE = CORE.middleware("libdom.event"), IE_CUSTOM_EVENTS = {}, ERROR_OBSERVABLE_NO_SUPPORT = STRING[1131], ERROR_INVALID_TYPE = STRING[1132], ERROR_INVALID_HANDLER = STRING[1133], IE_ON = "on", IE_BUBBLE_EVENT = "beforeupdate", IE_NO_BUBBLE_EVENT = "propertychanged", EXPORTS = module.exports = {
-                on: listen,
-                un: unlisten,
-                fire: dispatch,
-                purge: purge
-            };
-            var RESOLVE, LISTEN, UNLISTEN, DISPATCH, EVENT_INFO, IS_CAPABLE, SUBJECT;
-            function listen(observable, type, handler, context) {
-                var last = EVENTS, C = CORE;
-                var current, args;
-                if (!C.string(type)) {
-                    throw new Error(ERROR_INVALID_TYPE);
-                }
-                if (!C.method(handler)) {
-                    throw new Error(ERROR_INVALID_HANDLER);
-                }
-                observable = RESOLVE(observable);
-                if (!observable) {
-                    throw new Error(ERROR_OBSERVABLE_NO_SUPPORT);
-                }
-                if (typeof context === "undefined") {
-                    context = null;
-                }
-                args = [ observable, type, handler, context ];
-                MIDDLEWARE.run("listen", args);
-                observable = args[0];
-                type = args[1];
-                handler = args[2];
-                context = args[3];
-                args.splice(0, 4);
-                args = null;
-                current = LISTEN(observable, type, handler, context);
-                current.unlisten = createUnlistener(current);
-                current.head = last;
-                current.tail = null;
-                if (last) {
-                    last.tail = current;
-                }
-                EVENTS = current;
-                return current.unlisten;
-            }
-            function unlisten(observable, type, handler, context) {
-                var C = CORE;
-                var found, len, args;
-                if (!C.string(type)) {
-                    throw new Error(ERROR_INVALID_TYPE);
-                }
-                if (!C.method(handler)) {
-                    throw new Error(ERROR_INVALID_HANDLER);
-                }
-                observable = RESOLVE(observable);
-                if (!observable) {
-                    throw new Error(ERROR_OBSERVABLE_NO_SUPPORT);
-                }
-                if (typeof context === "undefined") {
-                    context = null;
-                }
-                args = [ observable, type, handler, context ];
-                MIDDLEWARE.run("unlisten", args);
-                observable = args[0];
-                type = args[1];
-                handler = args[2];
-                context = args[3];
-                args.splice(0, 4);
-                args = null;
-                found = filter(observable, type, handler, context);
-                for (len = found.length; len--; ) {
-                    found[len].unlisten();
-                }
-                return EXPORTS.chain;
-            }
-            function dispatch(observable, type, defaults) {
-                if (!CORE.string(type)) {
-                    throw new Error(ERROR_INVALID_TYPE);
-                }
-                observable = RESOLVE(observable);
-                if (!observable) {
-                    throw new Error(ERROR_OBSERVABLE_NO_SUPPORT);
-                }
-                return DISPATCH(observable, type, defaults);
-            }
-            function purge() {
-                var found = filter.apply(null, arguments), len = found.length;
-                for (;len--; ) {
-                    found[len].unlisten();
-                }
-                return EXPORTS.chain;
-            }
-            function createUnlistener(event) {
-                var destroyed = false;
-                function destroy() {
-                    var head, tail;
-                    if (!destroyed) {
-                        destroyed = true;
-                        UNLISTEN(event[0], event[1], event[4]);
-                        head = event.head;
-                        tail = event.tail;
-                        if (head) {
-                            head.tail = tail;
-                        }
-                        if (tail) {
-                            tail.head = head;
-                        }
-                        if (event === EVENTS) {
-                            EVENTS = tail || head;
-                        }
-                        event[0] = null;
-                        event.splice(0, 4);
-                        delete event.unlisten;
-                        delete event.head;
-                        delete event.tail;
-                        event = head = tail = null;
-                    }
-                }
-                return destroy;
-            }
-            function filter(observable, type, handler, context) {
-                var last = EVENTS, found = [], len = 0, argLen = arguments.length, HAS_OBSERVABLE = 0, HAS_TYPE = 0, HAS_HANDLER = 0, HAS_CONTEXT = 0;
-                switch (true) {
-                  case argLen > 3:
-                    HAS_CONTEXT = 1;
-
-                  case argLen > 2:
-                    HAS_HANDLER = 1;
-
-                  case argLen > 1:
-                    HAS_TYPE = 1;
-
-                  case argLen > 0:
-                    HAS_OBSERVABLE = 1;
-                }
-                for (;last; last = last.head) {
-                    if (HAS_OBSERVABLE && last[0] !== observable || HAS_TYPE && last[1] !== type || HAS_HANDLER && last[2] !== handler || HAS_CONTEXT && last[3] !== context) {
-                        continue;
-                    }
-                    found[len++] = last;
-                }
-                return found;
-            }
-            function w3cListen(observable, type, handler, context) {
-                var listener = w3cCreateHandler(handler, context);
-                observable.addEventListener(type, listener, false);
-                return [ observable, type, handler, context, listener ];
-            }
-            function w3cUnlisten(observable, type, listener) {
-                observable.removeEventListener(type, listener, false);
-            }
-            function w3cDispatch(observable, type, properties) {
-                var hasOwn = CORE.contains, event = global.document.createEvent("Event");
-                var name;
-                event.initEvent(type, properties.bubbles === true, properties.cancelable !== false);
-                for (name in properties) {
-                    if (hasOwn(properties, name) && !(name in event)) {
-                        event[name] = properties[name];
-                    }
-                }
-                observable.dispatchEvent(event);
-                return event;
-            }
-            function w3cObservable(observable) {
-                var isFunction = CORE.method;
-                return observable && typeof observable === "object" && isFunction(observable.addEventListener) && isFunction(observable.removeEventListener) && isFunction(observable.dispatchEvent) ? observable : false;
-            }
-            function w3cCreateHandler(handler, context) {
-                function onEvent(event) {
-                    MIDDLEWARE.run("dispatch", [ event.type, event ]);
-                    return handler.call(context, event, event.target);
-                }
-                return onEvent;
-            }
-            function ieListen(observable, type, handler, context) {
-                var on = IE_ON;
-                var listener;
-                if (ieTestCustomEvent(observable, type)) {
-                    listener = ieCreateCustomHandler(type, handler, context);
-                    observable.attachEvent(on + IE_BUBBLE_EVENT, listener);
-                    observable.attachEvent(on + IE_NO_BUBBLE_EVENT, listener);
-                } else {
-                    listener = ieCreateHandler(handler, context);
-                    observable.attachEvent(on + type, listener);
-                }
-                return [ observable, type, handler, context, listener ];
-            }
-            function ieUnlisten(observable, type, listener) {
-                var on = IE_ON;
-                if (listener.customType) {
-                    observable.detachEvent(on + IE_BUBBLE_EVENT, listener);
-                    observable.detachEvent(on + IE_NO_BUBBLE_EVENT, listener);
-                } else {
-                    observable.detachEvent(on + type, listener);
-                }
-            }
-            function ieDispatch(observable, type, properties) {
-                var hasOwn = CORE.contains, event = global.document.createEventObject();
-                var name;
-                for (name in properties) {
-                    if (hasOwn(properties, name) && !(name in event)) {
-                        event[name] = properties[name];
-                    }
-                }
-                if (ieTestCustomEvent(observable, type)) {
-                    event.customType = type;
-                    type = properties.bubbles === true ? IE_BUBBLE_EVENT : IE_NO_BUBBLE_EVENT;
-                }
-                name = IE_ON + type;
-                observable.fireEvent(name, event);
-                if (properties.cancelable === false) {
-                    event.returnValue = true;
-                }
-                return event;
-            }
-            function ieObservable(observable) {
-                if (observable) {
-                    observable = observable.window ? observable.self : observable;
-                    if (observable.attachEvent && observable.detachEvent) {
-                        return observable;
-                    }
-                }
-                return false;
-            }
-            function ieCreateHandler(handler, context) {
-                function onEvent() {
-                    var event = global.event;
-                    MIDDLEWARE.run("dispatch", [ event.type, event ]);
-                    return handler.call(context, event, event.target || event.srcElement);
-                }
-                return onEvent;
-            }
-            function ieCreateCustomHandler(type, handler, context) {
-                function onEvent() {
-                    var event = global.event;
-                    if (event.customType === type) {
-                        MIDDLEWARE.run("dispatch", [ type, event ]);
-                        event.type = type;
-                        return handler.call(context, event, event.target || event.srcElement);
-                    }
-                }
-                onEvent.customType = true;
-                return onEvent;
-            }
-            function ieTestCustomEvent(observable, type) {
-                var supported = false, list = IE_CUSTOM_EVENTS;
-                var element, access, ontype;
-                if (observable.nodeType === 9) {
-                    observable = observable.documentElement;
-                }
-                if (observable.nodeType === 1) {
-                    access = observable.tagName + ":" + type;
-                    if (access in list) {
-                        return list[access];
-                    }
-                    ontype = IE_ON + type;
-                    element = observable.cloneNode(false);
-                    supported = ontype in element;
-                    if (!supported) {
-                        element.setAttribute(ontype, "return;");
-                        supported = typeof element[ontype] === "function";
-                    }
-                    element = null;
-                    list[access] = !supported;
-                    return !supported;
-                }
-                return false;
-            }
-            function onBeforeUnload() {
-                if (!PAGE_UNLOADED) {
-                    PAGE_UNLOADED = true;
-                    purge();
-                }
-            }
-            RESOLVE = LISTEN = UNLISTEN = DISPATCH;
-            EVENT_INFO = INFO && INFO.event;
-            if (EVENT_INFO) {
-                IS_CAPABLE = true;
-                switch (true) {
-                  case EVENT_INFO.w3c:
-                    LISTEN = w3cListen;
-                    UNLISTEN = w3cUnlisten;
-                    DISPATCH = w3cDispatch;
-                    RESOLVE = w3cObservable;
-                    break;
-
-                  case EVENT_INFO.ie:
-                    LISTEN = ieListen;
-                    UNLISTEN = ieUnlisten;
-                    DISPATCH = ieDispatch;
-                    RESOLVE = ieObservable;
-                    break;
-
-                  default:
-                    IS_CAPABLE = false;
-                }
-                if (IS_CAPABLE) {
-                    SUBJECT = global;
-                    listen(SUBJECT, "beforeunload", onBeforeUnload);
-                    listen(SUBJECT, "unload", onBeforeUnload);
-                    SUBJECT = null;
-                }
-            }
-            EXPORTS.chain = EXPORTS;
-        }).call(exports, function() {
-            return this;
-        }());
-    }, function(module, exports, __webpack_require__) {
-        (function(global) {
-            "use strict";
-            var CORE = __webpack_require__(5), DETECTED = __webpack_require__(15), STRING = __webpack_require__(23), DOM = __webpack_require__(22), CSS = __webpack_require__(24), ERROR_INVALID_ELEMENT = STRING[1101], ERROR_INVALID_DOM = STRING[1102], OFFSET_TOP = "offsetTop", OFFSET_LEFT = "offsetLeft", OFFSET_WIDTH = "offsetWidth", OFFSET_HEIGHT = "offsetHeight", MARGIN_TOP = "marginTop", MARGIN_LEFT = "marginLeft", SCROLL_TOP = "scrollTop", SCROLL_LEFT = "scrollLeft", BOUNDING_RECT = "getBoundingClientRect", DEFAULTVIEW = null, ELEMENT_VIEW = 1, PAGE_VIEW = 2, USE_ZOOM_FACTOR = false, IE_PAGE_STAT_ACCESS = "documentElement", boundingRect = false, getPageScroll = null, getOffset = null, getSize = null, getScreenSize = null, EXPORTS = {
+            var CORE = __webpack_require__(5), DETECTED = __webpack_require__(16), STRING = __webpack_require__(23), DOM = __webpack_require__(24), CSS = __webpack_require__(26), ERROR_INVALID_ELEMENT = STRING[1101], ERROR_INVALID_DOM = STRING[1102], OFFSET_TOP = "offsetTop", OFFSET_LEFT = "offsetLeft", OFFSET_WIDTH = "offsetWidth", OFFSET_HEIGHT = "offsetHeight", MARGIN_TOP = "marginTop", MARGIN_LEFT = "marginLeft", SCROLL_TOP = "scrollTop", SCROLL_LEFT = "scrollLeft", BOUNDING_RECT = "getBoundingClientRect", DEFAULTVIEW = null, ELEMENT_VIEW = 1, PAGE_VIEW = 2, USE_ZOOM_FACTOR = false, IE_PAGE_STAT_ACCESS = "documentElement", boundingRect = false, getPageScroll = null, getOffset = null, getSize = null, getScreenSize = null, EXPORTS = {
                 offset: offset,
                 size: size,
                 box: box,
@@ -2768,7 +3204,7 @@
     }, function(module, exports, __webpack_require__) {
         (function(global) {
             "use strict";
-            var DETECTED = __webpack_require__(15), STRING = __webpack_require__(23), DOM = __webpack_require__(22), DIMENSION = __webpack_require__(33), DETECTED_DOM = DETECTED.dom, DETECTED_SELECTION = DETECTED.selection, ERROR_DOM = STRING[1102], SELECT_ELEMENT = null, CLEAR_SELECTION = null, UNSELECTABLE = attributeUnselectable, CSS_UNSELECT = DETECTED_SELECTION.cssUnselectable, EXPORTS = {
+            var DETECTED = __webpack_require__(16), STRING = __webpack_require__(23), DOM = __webpack_require__(24), DIMENSION = __webpack_require__(34), DETECTED_DOM = DETECTED.dom, DETECTED_SELECTION = DETECTED.selection, ERROR_DOM = STRING[1102], SELECT_ELEMENT = null, CLEAR_SELECTION = null, UNSELECTABLE = attributeUnselectable, CSS_UNSELECT = DETECTED_SELECTION.cssUnselectable, EXPORTS = {
                 select: select,
                 clear: clear,
                 unselectable: unselectable
@@ -2868,7 +3304,7 @@
         }());
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var STRING = __webpack_require__(23), CORE = __webpack_require__(5), EASING = __webpack_require__(36), COLOR = __webpack_require__(25), CSS = __webpack_require__(24), DIMENSION = __webpack_require__(33), SESSION_ACCESS = "__animate_session", BOX_POSITION = {
+        var STRING = __webpack_require__(23), CORE = __webpack_require__(5), EASING = __webpack_require__(37), COLOR = __webpack_require__(27), CSS = __webpack_require__(26), DIMENSION = __webpack_require__(34), SESSION_ACCESS = "__animate_session", BOX_POSITION = {
             left: 0,
             top: 1,
             right: 2,
