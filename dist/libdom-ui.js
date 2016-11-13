@@ -32,7 +32,9 @@
                 createBus: "create",
                 bus: "bus"
             });
-            rehash(EXPORTS, __webpack_require__(43), {});
+            rehash(EXPORTS, __webpack_require__(43), {
+                bind: "bind"
+            });
         }
         module.exports = EXPORTS["default"] = EXPORTS;
     }, function(module, exports, __webpack_require__) {
@@ -1568,12 +1570,12 @@
             element.insertBefore(toInsert, findChild(element, before));
             return toInsert;
         }
-        function remove(node) {
+        function remove(node, destroy) {
             var parentNode;
             if (!isDom(node, 1, 3, 4, 7, 8)) {
                 throw new Error(ERROR_INVALID_DOM_NODE);
             }
-            if (node.nodeType === 1) {
+            if (node.nodeType === 1 && destroy !== false) {
                 postOrderTraverse(node, purgeEventsFrom);
             }
             parentNode = node.parentNode;
@@ -1611,7 +1613,7 @@
             fragment = null;
             return element;
         }
-        function replace(node, config) {
+        function replace(node, config, destroy) {
             var toInsert = null, invalidConfig = ERROR_INVALID_ELEMENT_CONFIG, is = isDom;
             var tagName;
             if (!is(node, 1, 3, 4, 7, 8) || !node.parentNode) {
@@ -1630,7 +1632,7 @@
             if (!is(toInsert, 1, 3, 4, 7, 8)) {
                 throw new Error(invalidConfig);
             }
-            if (node.nodeType === 1) {
+            if (destroy === true && node.nodeType === 1) {
                 postOrderTraverse(node, purgeEventsFrom);
             }
             node.parentNode.replaceChild(toInsert, node);
@@ -3751,121 +3753,195 @@
         }());
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var LIBCORE = __webpack_require__(5), LIBDOM = __webpack_require__(3), MIDDLEWARE = LIBCORE.middleware("libdom-ui.node"), NODE_BIND_ATTR = "data-node-bind", NODE_ROLES_ATTR = "role", NODE_ID_GEN = 0, ZOMBIES = [], NODES = {}, EXPORTS = {
-            bind: bindFrom,
-            unbind: unbindFrom
-        };
-        function canBind(node) {
-            if (getBinding(node)) {
-                return false;
+        var LIBDOM = __webpack_require__(3), LIBCORE = __webpack_require__(5), COMPONENT = __webpack_require__(44), NODE_ATTRIBUTE = "data-ui-node", NODE_ID_GEN = 0, BINDS = LIBCORE.createRegistry();
+        function getNodeFromElement(element) {
+            var list = BINDS;
+            var id;
+            id = element.getAttribute(NODE_ATTRIBUTE);
+            if (list.exists(id)) {
+                return list.get(id);
             }
-            return !!node.getAttribute(NODE_ROLES_ATTR);
+            return null;
         }
-        function bindFrom(node) {
-            var DOM = LIBDOM;
-            if (DOM.is(node, 1, 9)) {
-                DOM.eachNodePreorder(node.nodeType === 9 ? node.body : node, bind);
-            }
-            return EXPORTS;
+        function canBind(element) {
+            return LIBDOM.is(element, 1) && !!COMPONENT.roles(element);
         }
-        function bind(node) {
-            var zombies = ZOMBIES, nodes = NODES;
-            var nodeBind;
-            if (canBind(node)) {
-                if (zombies.length) {
-                    nodeBind = nodes[zombies[0]];
-                    nodeBind.dead = false;
-                    zombies.splice(0, 1);
-                } else {
-                    nodeBind = new Node();
+        function bindNode(element, includeChildren) {
+            var node;
+            if (canBind(element)) {
+                node = getNodeFromElement(element);
+                if (!node) {
+                    node = new Node(element);
                 }
-                nodeBind.bind(node);
-                return nodeBind.id;
             }
-            return void 0;
-        }
-        function getBinding(node) {
-            var CORE = LIBCORE, nodes = NODES, id = node.getAttribute(NODE_BIND_ATTR);
-            if (CORE.string(id) && id in nodes) {
-                return nodes[id];
+            if (includeChildren === true) {
+                bindChildren(element);
             }
-            return false;
+            return node;
         }
-        function unbindFrom(node) {
-            var DOM = LIBDOM;
-            if (DOM.is(node, 1, 9)) {
-                DOM.eachNodePostorder(node.nodeType === 9 ? node.body : node, unbind);
+        function bindChildren(element) {
+            var DOM = LIBDOM, each = DOM.eachNodePreorder, bind = bindNode;
+            var child;
+            if (DOM.is(element, 1)) {
+                for (child = element.firstChild; child; child = child.nextSibling) {
+                    if (child.nodeType === 1) {
+                        each(child, bind);
+                    }
+                }
             }
-            return EXPORTS;
+            child = null;
         }
-        function unbind(node) {
-            var binding = getBinding(node);
-            if (binding) {
-                binding.destroy();
-            }
-        }
-        function Node() {
-            var me = this, id = "node" + ++NODE_ID_GEN;
+        function Node(element) {
+            var me = this, component = COMPONENT, create = component.create, id = "node" + ++NODE_ID_GEN, names = COMPONENT.roles(element), instances = [], except = {}, c = -1, l = names.length;
+            me.destroyed = false;
             me.id = id;
-            me.dead = false;
-            NODES[id] = me;
-            MIDDLEWARE.run("create", [ me ]);
+            me.dom = element;
+            element.setAttribute(NODE_ATTRIBUTE, id);
+            BINDS.set(id, me);
+            for (;l--; ) {
+                create(names[++c], instances, except);
+            }
+            me.components = instances;
         }
         Node.prototype = {
-            dom: null,
-            dead: true,
-            attached: false,
+            id: null,
+            destroyed: true,
             constructor: Node,
-            bind: function(node) {
-                var me = this, run = MIDDLEWARE.run;
-                var args;
-                if (!me.dom) {
-                    args = [ me, node ];
-                    run("before:bind", args);
-                    me.dom = node;
-                    me.onBind(node);
-                    run("after:bind", args);
-                    args = args[0] = args[1] = null;
-                }
-                return me;
-            },
-            onBind: function() {},
-            unbind: function() {
-                var me = this, run = MIDDLEWARE.run, dom = me.dom;
-                var args;
-                if (dom) {
-                    args = [ me, dom ];
-                    run("before:unbind", args);
-                    me.onUnbind(dom);
-                    me.dom = null;
-                    run("after:unbind", args);
-                    dom = args = args[0] = args[1] = null;
-                }
-                return this;
-            },
-            onUnbind: function() {},
-            destroy: function() {
-                var me = this, zombies = ZOMBIES, run = MIDDLEWARE.run, id = me.id;
-                var args;
-                if (!me.dead) {
-                    me.dead = true;
-                    if (me.dom) {
-                        me.unbind();
-                    }
-                    args = [ me ];
-                    run("before:destroy", args);
-                    args = args[0] = null;
-                    me.onDestroy();
-                    LIBCORE.clear(me);
-                    me.id = id;
-                    run("after:destroy", args);
-                    zombies[zombies.length] = id;
-                }
-            },
-            onDestroy: function() {}
+            destroy: function() {}
         };
-        console.log(LIBCORE);
-        module.exports = EXPORTS;
+        module.exports = {
+            bind: bindNode,
+            bindChildren: bindChildren
+        };
+    }, function(module, exports, __webpack_require__) {
+        "use strict";
+        var LIBCORE = __webpack_require__(5), LIBDOM = __webpack_require__(3), ROLE_ATTRIBUTE = "role", BASE_CLASS = "base", COMPONENTS = LIBCORE.createRegistry(), EXPORTS = {
+            register: register,
+            roles: getRoles,
+            create: instantiate
+        };
+        function getRegisteredRoles(str) {
+            var list = COMPONENTS, roles = str.split(" "), l = roles.length;
+            var role;
+            for (;l--; ) {
+                role = roles[l];
+                if (!list.exists(role)) {
+                    roles.splice(l, 1);
+                }
+            }
+            return roles.length ? roles : null;
+        }
+        function getRoles(element) {
+            var roles;
+            if (LIBDOM.is(element, 1)) {
+                roles = element.getAttribute(ROLE_ATTRIBUTE);
+                if (LIBCORE.string(roles)) {
+                    return getRegisteredRoles(roles);
+                }
+            }
+            return null;
+        }
+        function register(name, config) {
+            var CORE = LIBCORE, list = COMPONENTS;
+            if (CORE.string(name) && CORE.object(config)) {
+                list.set(name, {
+                    name: name,
+                    created: false,
+                    Class: null,
+                    properties: CORE.assign({}, config)
+                });
+            }
+            return EXPORTS.chain;
+        }
+        function instantiate(name, instances, except) {
+            var CORE = LIBCORE, contains = CORE.contains, me = instantiate, list = COMPONENTS;
+            var definition, requires, c, l, item, Class, instance;
+            if (!list.exists(name)) {
+                throw new Error("Component do not exist " + name);
+            }
+            if (!CORE.object(except)) {
+                except = {};
+            }
+            if (!CORE.array(instances)) {
+                instances = [];
+            }
+            except[name] = true;
+            definition = list.get(name);
+            if (!definition.created) {
+                createClass(name);
+            }
+            Class = definition.Class;
+            requires = Class.prototype.requires;
+            for (c = -1, l = requires.length; l--; ) {
+                item = requires[++c];
+                if (!contains(except, item)) {
+                    me(item, instances, except);
+                }
+            }
+            instances[instances.length] = instance = new Class();
+            return instance;
+        }
+        function createClass(name, createList) {
+            var CORE = LIBCORE, isString = CORE.string, contains = CORE.contains, list = COMPONENTS, definition = list.get(name), properties = definition.properties, Base = properties.based, requires = properties.requires;
+            var Constructor, l, BasePrototype;
+            if (!createList) {
+                createList = {};
+            }
+            createList[name] = true;
+            if (isString(Base)) {
+                if (!list.exists(Base)) {
+                    throw new Error("Invalid base Class " + Base);
+                }
+                if (contains(createList, Base)) {
+                    throw new Error("Cyclic inheritance of " + Base + " and " + name + " found.");
+                }
+                Base = list.get(Base);
+            } else {
+                Base = list.get(BASE_CLASS);
+            }
+            Base = !Base.created ? createClass(Base.name, createList) : Base.Class;
+            Constructor = contains(properties, "constructor") ? properties.constructor : createConstructor(Base);
+            properties = CORE.assign(CORE.instantiate(Base), properties);
+            properties.constructor = Constructor;
+            Constructor.prototype = properties;
+            BasePrototype = Base.prototype;
+            if (CORE.array(requires)) {
+                requires = BasePrototype.requires.concat(requires);
+                for (l = requires.length; l--; ) {
+                    if (!isString(requires[l])) {
+                        requires.splice(l, 1);
+                    }
+                }
+            } else {
+                requires = BasePrototype.requires.slice(0);
+            }
+            properties.requires = Base.prototype.requires.concat(requires);
+            definition.Class = Constructor;
+            definition.created = true;
+            return Constructor;
+        }
+        function createConstructor(Base) {
+            function Component() {
+                return Base.apply(this, arguments);
+            }
+            return Component;
+        }
+        module.exports = EXPORTS.chain = EXPORTS;
+        COMPONENTS.set(BASE_CLASS, {
+            name: BASE_CLASS,
+            created: true,
+            Class: __webpack_require__(45),
+            requires: [],
+            properties: {}
+        });
+    }, function(module, exports) {
+        "use strict";
+        function Base() {}
+        Base.prototype = {
+            requires: [],
+            constructor: Base
+        };
+        module.exports = Base;
     } ]);
 });
 

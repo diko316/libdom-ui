@@ -1,209 +1,99 @@
 'use strict';
 
-var LIBCORE = require("libcore"),
-    LIBDOM = require("libdom"),
-    MIDDLEWARE = LIBCORE.middleware("libdom-ui.node"),
-    NODE_BIND_ATTR = 'data-node-bind',
-    NODE_ROLES_ATTR = 'role',
+var LIBDOM = require("libdom"),
+    LIBCORE = require("libcore"),
+    COMPONENT = require("./component.js"),
+    NODE_ATTRIBUTE = "data-ui-node",
     NODE_ID_GEN = 0,
-    ZOMBIES = [],
-    NODES = {},
-    EXPORTS = {
-        bind: bindFrom,
-        unbind: unbindFrom
-    };
-/**
- * Node Status
- */
-function canBind(node) {
-    
-    // cannot bind if node already has binds
-    if (getBinding(node)) {
-        return false;
+    BINDS = LIBCORE.createRegistry();
+
+function getNodeFromElement(element) {
+    var list = BINDS;
+    var id;
+
+    id = element.getAttribute(NODE_ATTRIBUTE);
+    if (list.exists(id)) {
+        return list.get(id);
     }
     
-    // role attribute must be a non-empty string
-    return !!node.getAttribute(NODE_ROLES_ATTR);
+    return null;
 }
 
-/**
- * Node Management
- */
-function bindFrom(node) {
-    var DOM = LIBDOM;
-    
-    if (DOM.is(node, 1, 9)) {
-        DOM.eachNodePreorder(node.nodeType === 9 ?
-                                node.body :
-                                node,
-                            bind);
-    }
-    return EXPORTS;
+function canBind(element) {
+    return LIBDOM.is(element, 1) &&
+            !!COMPONENT.roles(element);
 }
 
-function bind(node) {
-    var zombies = ZOMBIES,
-        nodes = NODES;
-    var nodeBind;
-    
-    if (canBind(node)) {
-        
-        // try resurrecting zombies
-        if (zombies.length) {
-            nodeBind = nodes[zombies[0]];
-            nodeBind.dead = false;
-            zombies.splice(0, 1);
+function bindNode(element, includeChildren) {
+    var node;
+
+    if (canBind(element)) {
+        node = getNodeFromElement(element);
+        if (!node) {
+            node = new Node(element);
         }
-        // should create one
-        else {
-            nodeBind = new Node();
+    }
+    
+    if (includeChildren === true) {
+        bindChildren(element);
+    }
+
+    return node;
+}
+
+function bindChildren(element) {
+    var DOM = LIBDOM,
+        each = DOM.eachNodePreorder,
+        bind = bindNode;
+    var child;
+    
+    if (DOM.is(element, 1)) {
+        for (child = element.firstChild; child; child = child.nextSibling) {
+            if (child.nodeType === 1) {
+                each(child, bind);
+            }
         }
-        nodeBind.bind(node);
-        
-        return nodeBind.id;
-    
     }
-    return void(0);
+    child = null;
 }
 
-function getBinding(node) {
-    var CORE = LIBCORE,
-        nodes = NODES,
-        id = node.getAttribute(NODE_BIND_ATTR);
-        
-    if (CORE.string(id) && id in nodes) {
-        return nodes[id];
-    }
-    return false;
-}
-
-function unbindFrom(node) {
-    var DOM = LIBDOM;
-    
-    if (DOM.is(node, 1, 9)) {
-        DOM.eachNodePostorder(node.nodeType === 9 ?
-                                node.body :
-                                node,
-                            unbind);
-    }
-    
-    return EXPORTS;
-}
-
-function unbind(node) {
-    var binding = getBinding(node);
-    
-    // destroy binds
-    if (binding) {
-        binding.destroy();
-    }
-}
-
-/**
- * Node Class
- */
-function Node() {
+function Node(element) {
     var me = this,
-        id = 'node' + (++NODE_ID_GEN);
+        component = COMPONENT,
+        create = component.create,
+        id = 'node' + (++NODE_ID_GEN),
+        names = COMPONENT.roles(element),
+        instances = [],
+        except = {},
+        c = -1,
+        l = names.length;
     
+    me.destroyed = false;
     me.id = id;
-    me.dead = false;
-    NODES[id] = me;
-    MIDDLEWARE.run("create", [me]);
+    me.dom = element;
+    element.setAttribute(NODE_ATTRIBUTE, id);
+    BINDS.set(id, me);
+    
+    // instantiate components
+    for (; l--;) {
+        create(names[++c], instances, except);
+    }
+    
+    me.components = instances;
+
 }
 
 Node.prototype = {
-    dom: null,
-    dead: true,
-    attached: false,
-    
+    id: null,
+    destroyed: true,
     constructor: Node,
-
-    bind: function (node) {
-        var me = this,
-            run = MIDDLEWARE.run;
-        var args;
-        if (!me.dom) {
-            args = [me, node];
-            run("before:bind", args);
-            me.dom = node;
-            me.onBind(node);
-            run("after:bind", args);
-            args = args[0] = args[1] = null;
-        }
-        
-        return me;
-    },
-    
-    onBind: function () {
-        
-    },
-    
-    unbind: function () {
-        var me = this,
-            run = MIDDLEWARE.run,
-            dom = me.dom;
-        var args;
-        
-        if (dom) {
-            args = [me, dom];
-            run("before:unbind", args);
-            me.onUnbind(dom);
-            me.dom = null;
-            run("after:unbind", args);
-            dom = args = args[0] = args[1] = null;
-        }
-        
-        return this;
-    },
-    
-    onUnbind: function () {
-        
-    },
-    
     destroy: function () {
-        var me = this,
-            zombies = ZOMBIES,
-            run = MIDDLEWARE.run,
-            id = me.id;
-        var args;
-        
-        if (!me.dead) {
-            // stop all concurrent destroy calls
-            me.dead = true;
-            
-            // unbind if it has dom
-            if (me.dom) {
-                me.unbind();
-            }
-            
-            // destroy proper
-            args = [me];
-            run("before:destroy", args);
-            args = args[0] = null;
-            me.onDestroy();
-            LIBCORE.clear(me);
-            
-            // restore id (this should be permanent)
-            me.id = id;
-            run("after:destroy", args);
-            
-            // turn to zombie
-            zombies[zombies.length] = id;
-            
-        }
-    },
-    
-    onDestroy: function () {
         
     }
 };
 
-console.log(LIBCORE);
 
-
-module.exports = EXPORTS;
-
-
-
-
+module.exports = {
+    bind: bindNode,
+    bindChildren: bindChildren
+};

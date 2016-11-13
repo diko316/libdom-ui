@@ -25,7 +25,7 @@ if (DOM.env.browser) {
     rehash(EXPORTS,
         require("./lib/node.js"),
         {
-            
+            "bind": "bind"
         });
     
 }
