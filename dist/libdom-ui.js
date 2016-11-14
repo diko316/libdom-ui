@@ -3755,7 +3755,7 @@
         }());
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var LIBDOM = __webpack_require__(3), LIBCORE = __webpack_require__(5), COMPONENT = __webpack_require__(44), NODE_ATTRIBUTE = "data-ui-node", NODE_ID_GEN = 0, NULL = null, BINDS = LIBCORE.createRegistry();
+        var LIBDOM = __webpack_require__(3), LIBCORE = __webpack_require__(5), COMPONENT = __webpack_require__(44), Store = __webpack_require__(46), NODE_ATTRIBUTE = "data-ui-node", NODE_ID_GEN = 0, NULL = null, DOM_EVENT_NAME = "libdom-ui-event", BINDS = LIBCORE.createRegistry();
         function getNodeFromElement(element) {
             var list = BINDS;
             var id;
@@ -3794,17 +3794,19 @@
             child = null;
         }
         function bindMethod(instance, name) {
+            var original = instance[name];
             function boundToInstance() {
-                return instance[name].apply(instance, arguments);
+                return original.apply(instance, arguments);
             }
             instance[name] = boundToInstance;
             return boundToInstance;
         }
         function Node(element) {
-            var me = this, component = COMPONENT, create = component.create, bind = bindMethod, id = "node" + ++NODE_ID_GEN, names = COMPONENT.roles(element), instances = [], except = {}, c = -1, l = names.length;
+            var me = this, DOM = LIBDOM, component = COMPONENT, create = component.create, bind = bindMethod, id = "node" + ++NODE_ID_GEN, names = COMPONENT.roles(element), dispatchName = DOM_EVENT_NAME, instances = [], except = {}, c = -1, l = names.length;
             me.destroyed = false;
             me.id = id;
             me.dom = element;
+            me.store = new Store();
             element.setAttribute(NODE_ATTRIBUTE, id);
             BINDS.set(id, me);
             for (;l--; ) {
@@ -3812,17 +3814,41 @@
             }
             me.components = instances;
             bind(me, "onEvent");
-            LIBDOM.on(element, "libdom-ui-event", me.onEvent);
-            console.log("ok! ", me);
+            DOM.on(element, dispatchName, me.onEvent);
+            DOM.dispatch(element, dispatchName, {
+                eventMessage: {
+                    type: "attach",
+                    data: null
+                }
+            });
         }
         Node.prototype = {
             id: NULL,
             components: NULL,
             dom: NULL,
+            store: NULL,
             destroyed: true,
             constructor: Node,
             onEvent: function(event) {
-                console.log("event on ", this.dom, " event: ", event);
+                var me = this, CORE = LIBCORE, message = event.eventMessage;
+                if (CORE.object(message)) {
+                    me.each(message.type, me, event.data);
+                    console.log("message! ", message);
+                }
+            },
+            each: function(methodName) {
+                var args = Array.prototype.slice.call(arguments, 0), isMethod = LIBCORE.method, list = this.components, c = -1, l = list.length;
+                var method, component;
+                for (;l--; ) {
+                    component = list[++c];
+                    if (methodName in component && isMethod(method = component[methodName])) {
+                        try {
+                            method.apply(component, args);
+                        } catch (e) {
+                            console.warn(e);
+                        }
+                    }
+                }
             },
             publish: function() {},
             dispatch: function() {},
@@ -3992,6 +4018,186 @@
             destroy: function() {}
         };
         module.exports = Base;
+    }, function(module, exports, __webpack_require__) {
+        "use strict";
+        var LIBCORE = __webpack_require__(5), isString = LIBCORE.string, DATA = __webpack_require__(47);
+        function Store() {
+            this.data = {};
+        }
+        Store.prototype = {
+            data: null,
+            constructor: Store,
+            set: function(path, value, overwrite) {
+                return isString(path) && DATA.assign(path, this.data, value, overwrite);
+            },
+            unset: function(path) {
+                return isString(path) && DATA.remove(path, this.data);
+            },
+            compare: function(path, data) {
+                var my = this.data, compare = DATA.compare;
+                return isString(path) ? compare(DATA.find(path, my), data) : compare(my, data);
+            },
+            clone: function(path, deep) {
+                var my = this.data, clone = DATA.clone;
+                return isString(path) ? clone(path, my, deep) : clone(my, deep);
+            },
+            clear: function() {
+                var me = this;
+                LIBCORE.clear(me.data);
+                return me;
+            }
+        };
+        module.exports = Store;
+    }, function(module, exports, __webpack_require__) {
+        "use strict";
+        var LIBCORE = __webpack_require__(5), NUMERIC_RE = /^([1-9][0-9]*|0)$/;
+        function eachPath(path, callback, arg1, arg2, arg3, arg4) {
+            var escape = "\\", dot = ".", buffer = [], bl = 0;
+            var c, l, chr, apply, last;
+            for (c = -1, l = path.length; l--; ) {
+                chr = path.charAt(++c);
+                apply = false;
+                last = !l;
+                switch (chr) {
+                  case escape:
+                    chr = "";
+                    if (l) {
+                        chr = path.charAt(++c);
+                        l--;
+                    }
+                    break;
+
+                  case dot:
+                    chr = "";
+                    apply = true;
+                    break;
+                }
+                if (chr) {
+                    buffer[bl++] = chr;
+                }
+                if (last || apply) {
+                    if (bl) {
+                        if (callback(buffer.join(""), last, arg1, arg2, arg3, arg4) === false) {
+                            return;
+                        }
+                        buffer.length = bl = 0;
+                    }
+                }
+            }
+        }
+        function isAccessible(subject, item) {
+            var CORE = LIBCORE;
+            switch (true) {
+              case CORE.object(subject):
+              case CORE.array(subject) && (!NUMERIC_RE.test(item) || item !== "length"):
+                if (!CORE.contains(subject, item)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        function findCallback(item, last, operation) {
+            var subject = operation[1];
+            if (!isAccessible(subject, item)) {
+                operation[0] = void 0;
+                return false;
+            }
+            operation[last ? 0 : 1] = subject[item];
+            return true;
+        }
+        function find(path, object) {
+            var operation = [ void 0, object ];
+            eachPath(path, findCallback, operation);
+            operation[1] = null;
+            return operation[0];
+        }
+        function clone(path, object, deep) {
+            return LIBCORE.clone(find(path, object), deep);
+        }
+        function getItemsCallback(item, last, operation) {
+            operation[operation.length] = item;
+        }
+        function assign(path, subject, value, overwrite) {
+            var CORE = LIBCORE, has = CORE.contains, array = CORE.array, object = CORE.object, apply = CORE.assign, parent = subject, numericRe = NUMERIC_RE;
+            var items, c, l, item, name, numeric, property, isArray, temp;
+            if (CORE.object(parent) || CORE.array(parent)) {
+                eachPath(path, getItemsCallback, items = []);
+                if (items.length) {
+                    name = items[0];
+                    items.splice(0, 1);
+                    for (c = -1, l = items.length; l--; ) {
+                        item = items[++c];
+                        numeric = numericRe.test(item);
+                        if (has(parent, name)) {
+                            property = parent[name];
+                            isArray = array(property);
+                            if (!isArray && !object(property)) {
+                                if (numeric) {
+                                    property = [ property ];
+                                } else {
+                                    temp = property;
+                                    property = {};
+                                    property[""] = temp;
+                                }
+                            } else if (isArray && !numeric) {
+                                property = apply({}, property);
+                                delete property.length;
+                            }
+                        } else {
+                            property = numeric ? [] : {};
+                        }
+                        parent = parent[name] = property;
+                        name = item;
+                    }
+                    if (overwrite !== true && has(parent, name)) {
+                        property = parent[name];
+                        if (array(property)) {
+                            parent = property;
+                            name = parent.length;
+                        } else {
+                            parent = parent[name] = [ property ];
+                            name = 1;
+                        }
+                    }
+                    parent[name] = value;
+                    parent = value = property = temp = null;
+                    return true;
+                }
+            }
+            return false;
+        }
+        function removeCallback(item, last, operation) {
+            var subject = operation[0];
+            var isLength;
+            if (!isAccessible(subject, item)) {
+                return false;
+            }
+            if (last) {
+                if (LIBCORE.array(subject)) {
+                    isLength = item === "length";
+                    subject.splice(isLength ? 0 : item.toString(10), isLength ? subject.length : 1);
+                } else {
+                    delete subject[item];
+                }
+                operation[1] = true;
+            } else {
+                operation[0] = subject[item];
+            }
+        }
+        function remove(path, object) {
+            var operation = [ object, false ];
+            eachPath(path, removeCallback, operation);
+            operation[0] = null;
+            return operation[1];
+        }
+        module.exports = {
+            find: find,
+            compare: LIBCORE.compare,
+            clone: clone,
+            each: eachPath,
+            assign: assign,
+            remove: remove
+        };
     } ]);
 });
 
