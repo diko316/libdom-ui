@@ -50,8 +50,8 @@
     "webpack-hot-middleware": "^2.12.2"
   },
   "dependencies": {
-    "libcore": "0.2.5",
-    "libdom": "0.3.5",
-    "libdom-http": "0.0.3"
+    "libcore": "0.2.6",
+    "libdom": "0.3.6",
+    "libdom-http": "0.0.4"
   }
 }

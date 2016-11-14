@@ -5,6 +5,7 @@ var LIBCORE = require("libcore"),
     LIBDOM = require("libdom"),
     ROLE_ATTRIBUTE = 'role',
     BASE_CLASS = "base",
+    EVENT_METHOD_RE = /^on.+/,
     COMPONENTS = LIBCORE.createRegistry(),
     EXPORTS = {
         register: register,
@@ -102,6 +103,27 @@ function instantiate(name, instances, except) {
     return instance;
 }
 
+
+function assignProperties(value, name) {
+    /* jshint validthis:true */
+    var Prototype = this[0],
+        list = this[1],
+        CORE = LIBCORE;
+    var eventName;
+    
+    // convert and register them as event name
+    if (EVENT_METHOD_RE.test(name) && CORE.method(value)) {
+        eventName = CORE.camelize(name);
+        if (list.indexOf(eventName) === -1) {
+            list[list.length] = eventName;
+            Prototype[eventName] = value;
+        }
+    }
+    
+    Prototype[name] = value;
+
+}
+
 function createClass(name, createList) {
     var CORE = LIBCORE,
         isString = CORE.string,
@@ -112,7 +134,7 @@ function createClass(name, createList) {
         Base = properties.based,
         requires = properties.requires;
     
-    var Constructor, l, BasePrototype;
+    var Constructor, l, BasePrototype, Prototype, eventHandlers;
     
     if (!createList) {
         createList = {};
@@ -140,15 +162,17 @@ function createClass(name, createList) {
     Base = !Base.created ?
                     createClass(Base.name, createList) :
                     Base.Class;
+    BasePrototype = Base.prototype;
     
     Constructor = contains(properties, 'constructor') ?
                         properties.constructor : createConstructor(Base);
     
-    properties = CORE.assign(CORE.instantiate(Base), properties);
-    properties.constructor = Constructor;
-    Constructor.prototype = properties;
-    
-    BasePrototype = Base.prototype;
+    Prototype = CORE.instantiate(Base);
+    eventHandlers = BasePrototype.eventHandlers.slice(0);
+    CORE.each(properties, assignProperties, [Prototype, eventHandlers]);
+    Prototype.eventHandlers = eventHandlers;
+    Prototype.constructor = Constructor;
+    Constructor.prototype = Prototype;
     
     // validate mixin requires
     if (CORE.array(requires)) {
@@ -164,7 +188,7 @@ function createClass(name, createList) {
         requires = BasePrototype.requires.slice(0);
     }
     
-    properties.requires = Base.prototype.requires.concat(requires);
+    Prototype.requires = Base.prototype.requires.concat(requires);
         
     // update definition
     definition.Class = Constructor;

@@ -637,7 +637,7 @@
         };
     }, function(module, exports) {
         "use strict";
-        var HALF_BYTE = 128, SIX_BITS = 63, ONE_BYTE = 255, fromCharCode = String.fromCharCode, BASE64_MAP = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=", BASE64_EXCESS_REMOVE_RE = /[^a-zA-Z0-9\+\/]/;
+        var HALF_BYTE = 128, SIX_BITS = 63, ONE_BYTE = 255, fromCharCode = String.fromCharCode, BASE64_MAP = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=", BASE64_EXCESS_REMOVE_RE = /[^a-zA-Z0-9\+\/]/, CAMEL_RE = /[^a-z]+[a-z]/gi, UNCAMEL_RE = /\-*[A-Z]/g;
         function base64Encode(str) {
             var map = BASE64_MAP, buffer = [], bl = 0, c = -1, excess = false, pad = map.charAt(64);
             var l, total, code, flag, end, chr;
@@ -802,12 +802,26 @@
             }
             return null;
         }
+        function camelize(str) {
+            return str.replace(CAMEL_RE, applyCamelize);
+        }
+        function applyCamelize(all) {
+            return all.charAt(all.length - 1).toUpperCase();
+        }
+        function uncamelize(str) {
+            return str.replace(UNCAMEL_RE, applyUncamelize);
+        }
+        function applyUncamelize(all) {
+            return "-" + all.charAt(all.length - 1).toLowerCase();
+        }
         module.exports = {
             encode64: base64Encode,
             decode64: base64Decode,
             utf2bin: utf16ToUtf8,
             bin2utf: utf8ToUtf16,
-            jsonPath: parseJsonPath
+            jsonPath: parseJsonPath,
+            camelize: camelize,
+            uncamelize: uncamelize
         };
     }, function(module, exports, __webpack_require__) {
         (function(global) {
@@ -1361,8 +1375,8 @@
     }, function(module, exports, __webpack_require__) {
         (function(global) {
             "use strict";
-            var CORE = __webpack_require__(5), SEPARATE_RE = /[ \r\n\t]*[ \r\n\t]+[ \r\n\t]*/, CAMEL_RE = /[^a-z]+[a-z]/gi, STYLIZE_RE = /^([Mm]oz|[Ww]ebkit|[Mm]s|[oO])[A-Z]/, HTML_ESCAPE_CHARS_RE = /[^\u0021-\u007e]|[\u003e\u003c\&\"\']/g, TEXTAREA = global.document.createElement("textarea"), EXPORTS = {
-                camelize: camelize,
+            var CORE = __webpack_require__(5), SEPARATE_RE = /[ \r\n\t]*[ \r\n\t]+[ \r\n\t]*/, STYLIZE_RE = /^([Mm]oz|[Ww]ebkit|[Mm]s|[oO])[A-Z]/, HTML_ESCAPE_CHARS_RE = /[^\u0021-\u007e]|[\u003e\u003c\&\"\']/g, TEXTAREA = global.document.createElement("textarea"), EXPORTS = {
+                camelize: CORE.camelize,
                 stylize: stylize,
                 addWord: addWord,
                 removeWord: removeWord,
@@ -1390,21 +1404,9 @@
                 2005: "DOM selection not supported.",
                 2006: "CSS Opacity is not supported by this browser"
             };
-            function camelize(str) {
-                return str.replace(CAMEL_RE, onCamelizeMatch);
-            }
-            function onCamelizeMatch(all) {
-                return all[all.length - 1].toUpperCase();
-            }
-            function onStylizeMatch(all, match) {
-                var found = match.toLowerCase(), len = found.length;
-                if (found === "moz") {
-                    found = "Moz";
-                }
-                return found + all.substring(len, all.length);
-            }
             function stylize(str) {
-                return camelize(str).replace(STYLIZE_RE, onStylizeMatch);
+                str = CORE.camelize(str);
+                return STYLIZE_RE.test(str) ? str.charAt(0).toUpperCase() + str.substring(1, str.length) : str;
             }
             function addWord(str, items) {
                 var isString = CORE.string, c = -1, l = items.length;
@@ -3753,7 +3755,7 @@
         }());
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var LIBDOM = __webpack_require__(3), LIBCORE = __webpack_require__(5), COMPONENT = __webpack_require__(44), NODE_ATTRIBUTE = "data-ui-node", NODE_ID_GEN = 0, BINDS = LIBCORE.createRegistry();
+        var LIBDOM = __webpack_require__(3), LIBCORE = __webpack_require__(5), COMPONENT = __webpack_require__(44), NODE_ATTRIBUTE = "data-ui-node", NODE_ID_GEN = 0, NULL = null, BINDS = LIBCORE.createRegistry();
         function getNodeFromElement(element) {
             var list = BINDS;
             var id;
@@ -3791,8 +3793,15 @@
             }
             child = null;
         }
+        function bindMethod(instance, name) {
+            function boundToInstance() {
+                return instance[name].apply(instance, arguments);
+            }
+            instance[name] = boundToInstance;
+            return boundToInstance;
+        }
         function Node(element) {
-            var me = this, component = COMPONENT, create = component.create, id = "node" + ++NODE_ID_GEN, names = COMPONENT.roles(element), instances = [], except = {}, c = -1, l = names.length;
+            var me = this, component = COMPONENT, create = component.create, bind = bindMethod, id = "node" + ++NODE_ID_GEN, names = COMPONENT.roles(element), instances = [], except = {}, c = -1, l = names.length;
             me.destroyed = false;
             me.id = id;
             me.dom = element;
@@ -3802,12 +3811,36 @@
                 create(names[++c], instances, except);
             }
             me.components = instances;
+            bind(me, "onEvent");
+            LIBDOM.on(element, "libdom-ui-event", me.onEvent);
+            console.log("ok! ", me);
         }
         Node.prototype = {
-            id: null,
+            id: NULL,
+            components: NULL,
+            dom: NULL,
             destroyed: true,
             constructor: Node,
-            destroy: function() {}
+            onEvent: function(event) {
+                console.log("event on ", this.dom, " event: ", event);
+            },
+            publish: function() {},
+            dispatch: function() {},
+            listen: function() {},
+            destroy: function() {
+                var me = this;
+                var total, l, list;
+                if (!me.destroyed) {
+                    delete me.destroyed;
+                    LIBDOM.un(me.dom, "libdom-ui-event", me.onEvent);
+                    list = me.components;
+                    for (total = l = list.length; l--; ) {
+                        list[l].destroy();
+                    }
+                    list.splice(0, total);
+                    list = null;
+                }
+            }
         };
         module.exports = {
             bind: bindNode,
@@ -3815,7 +3848,7 @@
         };
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var LIBCORE = __webpack_require__(5), LIBDOM = __webpack_require__(3), ROLE_ATTRIBUTE = "role", BASE_CLASS = "base", COMPONENTS = LIBCORE.createRegistry(), EXPORTS = {
+        var LIBCORE = __webpack_require__(5), LIBDOM = __webpack_require__(3), ROLE_ATTRIBUTE = "role", BASE_CLASS = "base", EVENT_METHOD_RE = /^on.+/, COMPONENTS = LIBCORE.createRegistry(), EXPORTS = {
             register: register,
             roles: getRoles,
             create: instantiate
@@ -3881,9 +3914,21 @@
             instances[instances.length] = instance = new Class();
             return instance;
         }
+        function assignProperties(value, name) {
+            var Prototype = this[0], list = this[1], CORE = LIBCORE;
+            var eventName;
+            if (EVENT_METHOD_RE.test(name) && CORE.method(value)) {
+                eventName = CORE.camelize(name);
+                if (list.indexOf(eventName) === -1) {
+                    list[list.length] = eventName;
+                    Prototype[eventName] = value;
+                }
+            }
+            Prototype[name] = value;
+        }
         function createClass(name, createList) {
             var CORE = LIBCORE, isString = CORE.string, contains = CORE.contains, list = COMPONENTS, definition = list.get(name), properties = definition.properties, Base = properties.based, requires = properties.requires;
-            var Constructor, l, BasePrototype;
+            var Constructor, l, BasePrototype, Prototype, eventHandlers;
             if (!createList) {
                 createList = {};
             }
@@ -3900,11 +3945,14 @@
                 Base = list.get(BASE_CLASS);
             }
             Base = !Base.created ? createClass(Base.name, createList) : Base.Class;
-            Constructor = contains(properties, "constructor") ? properties.constructor : createConstructor(Base);
-            properties = CORE.assign(CORE.instantiate(Base), properties);
-            properties.constructor = Constructor;
-            Constructor.prototype = properties;
             BasePrototype = Base.prototype;
+            Constructor = contains(properties, "constructor") ? properties.constructor : createConstructor(Base);
+            Prototype = CORE.instantiate(Base);
+            eventHandlers = BasePrototype.eventHandlers.slice(0);
+            CORE.each(properties, assignProperties, [ Prototype, eventHandlers ]);
+            Prototype.eventHandlers = eventHandlers;
+            Prototype.constructor = Constructor;
+            Constructor.prototype = Prototype;
             if (CORE.array(requires)) {
                 requires = BasePrototype.requires.concat(requires);
                 for (l = requires.length; l--; ) {
@@ -3915,7 +3963,7 @@
             } else {
                 requires = BasePrototype.requires.slice(0);
             }
-            properties.requires = Base.prototype.requires.concat(requires);
+            Prototype.requires = Base.prototype.requires.concat(requires);
             definition.Class = Constructor;
             definition.created = true;
             return Constructor;
@@ -3938,8 +3986,10 @@
         "use strict";
         function Base() {}
         Base.prototype = {
+            eventHandlers: [],
             requires: [],
-            constructor: Base
+            constructor: Base,
+            destroy: function() {}
         };
         module.exports = Base;
     } ]);

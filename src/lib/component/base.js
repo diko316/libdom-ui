@@ -5,9 +5,11 @@ function Base() {
 }
 
 Base.prototype = {
+    eventHandlers: [],
     requires: [],
-    constructor: Base
-    
+    constructor: Base,
+    destroy: function () {
+    }
 };
 
 

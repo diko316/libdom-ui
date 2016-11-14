@@ -5,6 +5,7 @@ var LIBDOM = require("libdom"),
     COMPONENT = require("./component.js"),
     NODE_ATTRIBUTE = "data-ui-node",
     NODE_ID_GEN = 0,
+    NULL = null,
     BINDS = LIBCORE.createRegistry();
 
 function getNodeFromElement(element) {
@@ -57,10 +58,19 @@ function bindChildren(element) {
     child = null;
 }
 
+function bindMethod(instance, name) {
+    function boundToInstance() {
+        return instance[name].apply(instance, arguments);
+    }
+    instance[name] = boundToInstance;
+    return boundToInstance;
+}
+
 function Node(element) {
     var me = this,
         component = COMPONENT,
         create = component.create,
+        bind = bindMethod,
         id = 'node' + (++NODE_ID_GEN),
         names = COMPONENT.roles(element),
         instances = [],
@@ -80,15 +90,59 @@ function Node(element) {
     }
     
     me.components = instances;
-
+    
+    // bind methods
+    bind(me, 'onEvent');
+    
+    // listen to events
+    LIBDOM.on(element, 'libdom-ui-event', me.onEvent);
+    
+    console.log("ok! ", me);
 }
 
 Node.prototype = {
-    id: null,
+    
+    id: NULL,
+    components: NULL,
+    dom: NULL,
     destroyed: true,
+    
     constructor: Node,
-    destroy: function () {
+    
+    onEvent: function (event) {
+        console.log('event on ', this.dom, ' event: ', event);
+    },
+    
+    publish: function () {
         
+    },
+    
+    dispatch: function () {
+        
+    },
+    
+    listen: function () {
+        
+    },
+    
+    destroy: function () {
+        var me = this;
+        var total, l, list;
+        
+        if (!me.destroyed) {
+            delete me.destroyed;
+            LIBDOM.un(me.dom, 'libdom-ui-event', me.onEvent);
+            
+            // destroy components
+            list = me.components;
+            
+            for (total = l = list.length; l--;) {
+                list[l].destroy();
+            }
+            
+            list.splice(0, total);
+            list = null;
+        }
     }
 };
 
