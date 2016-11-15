@@ -8,9 +8,6 @@ Base.prototype = {
     eventHandlers: [],
     requires: [],
     constructor: Base,
-    onClick: function () {
-        console.log('clicked!', arguments);
-    },
     destroy: function () {
     }
 };

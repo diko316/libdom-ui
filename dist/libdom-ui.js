@@ -3768,14 +3768,11 @@
         function bindInfo(element) {
             var id;
             if (LIBDOM.is(element, 1)) {
-                if (COMPONENT.roles(element)) {
-                    id = element.getAttribute(NODE_ATTRIBUTE);
-                    if (id && BINDS.exists(id)) {
-                        return INFO_BOUND;
-                    }
-                    return INFO_CAN_BIND;
+                id = element.getAttribute(NODE_ATTRIBUTE);
+                if (id && BINDS.exists(id)) {
+                    return INFO_BOUND;
                 }
-                return INFO_ELEMENT;
+                return COMPONENT.roles(element) ? INFO_CAN_BIND : INFO_ELEMENT;
             }
             return INFO_INVALID;
         }
@@ -3809,20 +3806,27 @@
             function boundToEvent(event) {
                 return method.call(this, event, node);
             }
+            component.node = node;
             component[methodName] = boundToEvent;
             LIBDOM.on(node.dom, event, boundToEvent, component);
         }
         function unbindComponentListenerCallback(event, methodName, method, component) {
             var node = this;
             LIBDOM.un(node.dom, event, method, component);
+            delete component.node;
+        }
+        function publishCallback(element) {
+            var params = this, node = getNodeFromElement(element);
+            if (node) {
+                node.dispatch(params[0], params[1]);
+            }
         }
         function Node(element) {
-            var me = this, component = COMPONENT, create = component.create, id = "node" + ++NODE_ID_GEN, names = component.roles(element), eachListener = EVENT.eachListener, instances = [], except = {};
+            var me = this, component = COMPONENT, create = component.create, id = "node" + ++NODE_ID_GEN, names = component.roles(element), eachListener = EVENT.eachListener, bind = bindComponentListenerCallback, instances = [], except = {};
             var c, l;
             me.destroyed = false;
             me.id = id;
             me.dom = element;
-            me.store = new Store();
             element.setAttribute(NODE_ATTRIBUTE, id);
             BINDS.set(id, me);
             for (c = -1, l = names.length; l--; ) {
@@ -3830,8 +3834,9 @@
             }
             me.components = instances;
             for (c = -1, l = instances.length; l--; ) {
-                eachListener(instances[++c], bindComponentListenerCallback, me);
+                eachListener(instances[++c], bind, me);
             }
+            me.dispatch("cmp-ready");
         }
         Node.prototype = {
             id: NULL,
@@ -3840,49 +3845,74 @@
             store: NULL,
             destroyed: true,
             constructor: Node,
-            onEvent: function(event) {
-                var CORE = LIBCORE, message = event.eventMessage;
-                if (CORE.object(message)) {}
-            },
-            callEach: function(methodName) {
-                var args = Array.prototype.slice.call(arguments, 0), isMethod = LIBCORE.method, list = this.components, c = -1, l = list.length;
-                var method, component;
-                for (;l--; ) {
-                    component = list[++c];
-                    if (methodName in component && isMethod(method = component[methodName])) {
-                        try {
-                            method.apply(component, args);
-                        } catch (e) {
-                            console.warn(e);
+            parent: function() {
+                var me = this, isBound = INFO_BOUND, node = me.dom;
+                if (node && !me.destroyed) {
+                    for (;node; node = node.parentNode) {
+                        if (bindInfo(node) === isBound) {
+                            return node;
                         }
-                    }
-                }
-            },
-            getParent: function() {
-                var node = this.dom;
-                for (;node; node = node.parentNode) {
-                    if (bindInfo(node) === INFO_BOUND) {
-                        return node;
                     }
                 }
                 return null;
             },
-            publish: function() {},
-            dispatch: function() {},
-            listen: function() {},
+            root: function() {
+                var me = this, isBound = INFO_BOUND, node = me.dom, found = null;
+                if (node && !me.destroyed) {
+                    node = node.parentNode;
+                    for (;node; node = node.parentNode) {
+                        if (bindInfo(node) === isBound) {
+                            found = node;
+                        }
+                    }
+                    node = null;
+                }
+                return found;
+            },
+            publish: function(type, data) {
+                var me = this, root = me.root(), CORE = LIBCORE;
+                var dom;
+                if (root && !root.destroyed) {
+                    dom = root.dom;
+                    if (dom && CORE.string(type)) {
+                        if (!CORE.object(data)) {
+                            data = {};
+                        }
+                        data.bubbles = false;
+                        LIBDOM.eachNodePreorder(dom, publishCallback, [ type, data ]);
+                    }
+                    dom = null;
+                }
+                return me;
+            },
+            dispatch: function(type, data) {
+                var me = this, dom = me.dom, CORE = LIBCORE;
+                if (!me.destroyed && dom) {
+                    if (CORE.string(type)) {
+                        if (!CORE.object(data)) {
+                            data = {};
+                        }
+                        return LIBDOM.dispatch(dom, type, data);
+                    }
+                }
+                return null;
+            },
             destroy: function() {
-                var me = this;
-                var total, l, list;
+                var me = this, unbind = unbindComponentListenerCallback, dom = me.dom, eachListener = EVENT.eachListener;
+                var total, l, list, component;
                 if (!me.destroyed) {
+                    this.dispatch("destroy", {
+                        bubbles: false
+                    });
                     delete me.destroyed;
-                    LIBDOM.un(me.dom, "libdom-ui-event", me.onEvent);
                     list = me.components;
                     for (total = l = list.length; l--; ) {
-                        list[l].destroy();
+                        component = list[l];
+                        eachListener(component, unbind, me);
                     }
                     list.splice(0, total);
-                    list = null;
                 }
+                dom = list = null;
             }
         };
         module.exports = {
@@ -3891,7 +3921,7 @@
         };
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var LIBCORE = __webpack_require__(5), LIBDOM = __webpack_require__(3), ROLE_ATTRIBUTE = "role", BASE_CLASS = "base", EVENT_METHOD_RE = /^on.+/, COMPONENTS = LIBCORE.createRegistry(), EXPORTS = {
+        var LIBCORE = __webpack_require__(5), LIBDOM = __webpack_require__(3), ROLE_ATTRIBUTE = "role", BASE_CLASS = "base", BASE_COMPONENT = __webpack_require__(45), EVENT_METHOD_RE = /^on.+/, COMPONENTS = LIBCORE.createRegistry(), EXPORTS = {
             register: register,
             roles: getRoles,
             create: instantiate
@@ -3918,15 +3948,27 @@
             return null;
         }
         function register(name, config) {
-            var CORE = LIBCORE, list = COMPONENTS;
-            if (CORE.string(name) && CORE.object(config)) {
-                list.set(name, {
-                    name: name,
-                    created: false,
-                    Class: null,
-                    properties: CORE.assign({}, config)
-                });
+            var CORE = LIBCORE, list = COMPONENTS, Base = BASE_COMPONENT;
+            var isObject, Prototype;
+            if (!CORE.string(name)) {
+                throw new Error("Invalid [name] parameter.");
             }
+            isObject = CORE.object(config);
+            if (!isObject && !CORE.method(config)) {
+                throw new Error("Invalid [config] parameter.");
+            }
+            if (!isObject) {
+                Prototype = config.prototype;
+                if (!(Prototype instanceof Base) && Prototype !== Base.prototype) {
+                    throw new Error("[config] Class must be a subclass of Base Component.");
+                }
+            }
+            list.set(name, {
+                name: name,
+                created: !isObject,
+                Class: isObject ? null : config,
+                properties: isObject ? CORE.assign({}, config) : Prototype
+            });
             return EXPORTS.chain;
         }
         function instantiate(name, instances, except) {
@@ -3957,21 +3999,9 @@
             instances[instances.length] = instance = new Class();
             return instance;
         }
-        function assignProperties(value, name) {
-            var Prototype = this[0], list = this[1], CORE = LIBCORE;
-            var eventName;
-            if (EVENT_METHOD_RE.test(name) && CORE.method(value)) {
-                eventName = CORE.camelize(name);
-                if (list.indexOf(eventName) === -1) {
-                    list[list.length] = eventName;
-                    Prototype[eventName] = value;
-                }
-            }
-            Prototype[name] = value;
-        }
         function createClass(name, createList) {
             var CORE = LIBCORE, isString = CORE.string, contains = CORE.contains, list = COMPONENTS, definition = list.get(name), properties = definition.properties, Base = properties.based, requires = properties.requires;
-            var Constructor, l, BasePrototype, Prototype, eventHandlers;
+            var Constructor, l, BasePrototype, Prototype;
             if (!createList) {
                 createList = {};
             }
@@ -3990,10 +4020,7 @@
             Base = !Base.created ? createClass(Base.name, createList) : Base.Class;
             BasePrototype = Base.prototype;
             Constructor = contains(properties, "constructor") ? properties.constructor : createConstructor(Base);
-            Prototype = CORE.instantiate(Base);
-            eventHandlers = BasePrototype.eventHandlers.slice(0);
-            CORE.each(properties, assignProperties, [ Prototype, eventHandlers ]);
-            Prototype.eventHandlers = eventHandlers;
+            Prototype = CORE.assign(CORE.instantiate(Base), properties);
             Prototype.constructor = Constructor;
             Constructor.prototype = Prototype;
             if (CORE.array(requires)) {
@@ -4018,13 +4045,7 @@
             return Component;
         }
         module.exports = EXPORTS.chain = EXPORTS;
-        COMPONENTS.set(BASE_CLASS, {
-            name: BASE_CLASS,
-            created: true,
-            Class: __webpack_require__(45),
-            requires: [],
-            properties: {}
-        });
+        register(BASE_CLASS, BASE_COMPONENT);
     }, function(module, exports) {
         "use strict";
         function Base() {}
@@ -4032,9 +4053,6 @@
             eventHandlers: [],
             requires: [],
             constructor: Base,
-            onClick: function() {
-                console.log("clicked!", arguments);
-            },
             destroy: function() {}
         };
         module.exports = Base;
@@ -4086,6 +4104,35 @@
         Store.prototype = {
             data: null,
             constructor: Store,
+            begin: function() {
+                var me = this, cache = me.cache;
+                if (typeof cache === "undefined") {
+                    me.cache = me.clone(null, true);
+                }
+                return me;
+            },
+            commit: function() {
+                var me = this, cache = me.cache;
+                var result;
+                if (LIBCORE.object(cache)) {
+                    result = me.compare(null, cache);
+                    me.cache = me.clone(null, true);
+                    cache = null;
+                    return result;
+                }
+                return false;
+            },
+            end: function() {
+                var me = this, cache = me.cache;
+                var result;
+                if (LIBCORE.object(cache)) {
+                    result = me.compare(null, cache);
+                    me.cache = cache = null;
+                    delete me.cache;
+                    return result;
+                }
+                return false;
+            },
             set: function(path, value, overwrite) {
                 return isString(path) && DATA.assign(path, this.data, value, overwrite);
             },

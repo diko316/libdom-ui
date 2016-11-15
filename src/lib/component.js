@@ -5,6 +5,7 @@ var LIBCORE = require("libcore"),
     LIBDOM = require("libdom"),
     ROLE_ATTRIBUTE = 'role',
     BASE_CLASS = "base",
+    BASE_COMPONENT = require("./component/base.js"),
     EVENT_METHOD_RE = /^on.+/,
     COMPONENTS = LIBCORE.createRegistry(),
     EXPORTS = {
@@ -46,16 +47,36 @@ function getRoles(element) {
 
 function register(name, config) {
     var CORE = LIBCORE,
-        list = COMPONENTS;
+        list = COMPONENTS,
+        Base = BASE_COMPONENT;
+    var isObject, Prototype;
     
-    if (CORE.string(name) && CORE.object(config)) {
-        list.set(name, {
-            name: name,
-            created: false,
-            Class: null,
-            properties: CORE.assign({}, config)
-        });
+    if (!CORE.string(name)) {
+        throw new Error("Invalid [name] parameter.");
     }
+    
+    isObject = CORE.object(config);
+    if (!isObject && !CORE.method(config)) {
+        throw new Error("Invalid [config] parameter.");
+    }
+    
+    // validate method
+    if (!isObject) {
+        Prototype = config.prototype;
+        if (!(Prototype instanceof Base) && Prototype !== Base.prototype) {
+            throw new Error(
+                "[config] Class must be a subclass of Base Component.");
+        }
+    }
+    
+    list.set(name, {
+        name: name,
+        created: !isObject,
+        Class: isObject ? null : config,
+        properties: isObject ?
+                        CORE.assign({}, config) :
+                        Prototype
+    });
     
     return EXPORTS.chain;
 }
@@ -104,26 +125,6 @@ function instantiate(name, instances, except) {
 }
 
 
-function assignProperties(value, name) {
-    /* jshint validthis:true */
-    var Prototype = this[0],
-        list = this[1],
-        CORE = LIBCORE;
-    var eventName;
-    
-    // convert and register them as event name
-    if (EVENT_METHOD_RE.test(name) && CORE.method(value)) {
-        eventName = CORE.camelize(name);
-        if (list.indexOf(eventName) === -1) {
-            list[list.length] = eventName;
-            Prototype[eventName] = value;
-        }
-    }
-    
-    Prototype[name] = value;
-
-}
-
 function createClass(name, createList) {
     var CORE = LIBCORE,
         isString = CORE.string,
@@ -134,7 +135,7 @@ function createClass(name, createList) {
         Base = properties.based,
         requires = properties.requires;
     
-    var Constructor, l, BasePrototype, Prototype, eventHandlers;
+    var Constructor, l, BasePrototype, Prototype;
     
     if (!createList) {
         createList = {};
@@ -167,10 +168,7 @@ function createClass(name, createList) {
     Constructor = contains(properties, 'constructor') ?
                         properties.constructor : createConstructor(Base);
     
-    Prototype = CORE.instantiate(Base);
-    eventHandlers = BasePrototype.eventHandlers.slice(0);
-    CORE.each(properties, assignProperties, [Prototype, eventHandlers]);
-    Prototype.eventHandlers = eventHandlers;
+    Prototype = CORE.assign(CORE.instantiate(Base), properties);
     Prototype.constructor = Constructor;
     Constructor.prototype = Prototype;
     
@@ -207,12 +205,14 @@ function createConstructor(Base) {
 
 module.exports = EXPORTS.chain = EXPORTS;
 
-// manual register
-COMPONENTS.set(BASE_CLASS, {
-    name: BASE_CLASS,
-    created: true,
-    Class: require("./component/base.js"),
-    requires: [],
-    properties: {}
-});
-
+// register base class
+register(BASE_CLASS, BASE_COMPONENT);
+//
+//COMPONENTS.set(BASE_CLASS, {
+//    name: BASE_CLASS,
+//    created: true,
+//    Class: require("./component/base.js"),
+//    requires: [],
+//    properties: {}
+//});
+//
