@@ -111,6 +111,7 @@ function Node(element) {
         id = 'node' + (++NODE_ID_GEN),
         names = component.roles(element),
         eachListener = EVENT.eachListener,
+        bind = bindComponentListenerCallback,
         instances = [],
         except = {};
         
@@ -133,9 +134,7 @@ function Node(element) {
     
     // apply component listener
     for (c = -1, l = instances.length; l--;) {
-        eachListener(instances[++c],
-                    bindComponentListenerCallback,
-                    me);
+        eachListener(instances[++c], bind, me);
     }
 
 }
@@ -208,8 +207,10 @@ Node.prototype = {
     },
     
     destroy: function () {
-        var me = this;
-        var total, l, list;
+        var me = this,
+            unbind = unbindComponentListenerCallback,
+            eachListener = EVENT.eachListener;
+        var total, l, list, component;
         
         if (!me.destroyed) {
             delete me.destroyed;
@@ -220,6 +221,7 @@ Node.prototype = {
             
             for (total = l = list.length; l--;) {
                 list[l].destroy();
+                eachListener(component, unbind, me);
             }
             
             list.splice(0, total);
