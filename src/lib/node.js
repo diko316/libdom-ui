@@ -3,13 +3,22 @@
 var LIBDOM = require("libdom"),
     LIBCORE = require("libcore"),
     COMPONENT = require("./component.js"),
+    EVENT = require("./event.js"),
     Store = require("./store.js"),
+    INFO_INVALID = 0,
+    INFO_BOUND = 1,
+    INFO_CAN_BIND = 2,
+    INFO_ELEMENT = 3,
+    
     NODE_ATTRIBUTE = "data-ui-node",
     NODE_ID_GEN = 0,
     NULL = null,
-    DOM_EVENT_NAME = 'libdom-ui-event',
     BINDS = LIBCORE.createRegistry();
 
+
+/**
+ * Node bindings
+ */
 function getNodeFromElement(element) {
     var list = BINDS;
     var id;
@@ -22,15 +31,25 @@ function getNodeFromElement(element) {
     return null;
 }
 
-function canBind(element) {
-    return LIBDOM.is(element, 1) &&
-            !!COMPONENT.roles(element);
+function bindInfo(element) {
+    var id;
+    if (LIBDOM.is(element, 1)) {
+        if (COMPONENT.roles(element)) {
+            id = element.getAttribute(NODE_ATTRIBUTE);
+            if (id && BINDS.exists(id)) {
+                return INFO_BOUND;
+            }
+            return INFO_CAN_BIND;
+        }
+        return INFO_ELEMENT;
+    }
+    return INFO_INVALID;
 }
 
 function bindNode(element, includeChildren) {
     var node;
 
-    if (canBind(element)) {
+    if (bindInfo(element) === INFO_CAN_BIND) {
         node = getNodeFromElement(element);
         if (!node) {
             node = new Node(element);
@@ -60,30 +79,43 @@ function bindChildren(element) {
     child = null;
 }
 
-function bindMethod(instance, name) {
-    var original = instance[name];
+/**
+ * Node Events
+ */
+function bindComponentListenerCallback(event, methodName, method, component) {
+    /* jshint validthis:true */
+    var node = this;
     
-    function boundToInstance() {
-        return original.apply(instance, arguments);
+    function boundToEvent(event) {
+        return method.call(this, event, node);
     }
-    
-    instance[name] = boundToInstance;
-    return boundToInstance;
+    component[methodName] = boundToEvent;
+    LIBDOM.on(node.dom, event, boundToEvent, component);
 }
+
+function unbindComponentListenerCallback(event, methodName, method, component) {
+    /* jshint validthis:true */
+    var node = this;
+    LIBDOM.un(node.dom, event, method, component);
+}
+
+
+/**
+ * Node Class
+ */
 
 function Node(element) {
     var me = this,
-        DOM = LIBDOM,
         component = COMPONENT,
         create = component.create,
-        bind = bindMethod,
         id = 'node' + (++NODE_ID_GEN),
-        names = COMPONENT.roles(element),
-        dispatchName = DOM_EVENT_NAME,
+        names = component.roles(element),
+        eachListener = EVENT.eachListener,
         instances = [],
-        except = {},
-        c = -1,
-        l = names.length;
+        except = {};
+        
+        
+    var c, l;
     
     me.destroyed = false;
     me.id = id;
@@ -93,25 +125,18 @@ function Node(element) {
     BINDS.set(id, me);
     
     // instantiate components
-    for (; l--;) {
+    for (c = -1, l = names.length; l--;) {
         create(names[++c], instances, except);
     }
     
     me.components = instances;
     
-    // bind methods
-    bind(me, 'onEvent');
-    
-    // listen to events
-    DOM.on(element, dispatchName, me.onEvent);
-    
-    DOM.dispatch(element,
-                dispatchName, {
-                    eventMessage: {
-                        type: "attach",
-                        data: null
-                    }
-                });
+    // apply component listener
+    for (c = -1, l = instances.length; l--;) {
+        eachListener(instances[++c],
+                    bindComponentListenerCallback,
+                    me);
+    }
 
 }
 
@@ -126,20 +151,19 @@ Node.prototype = {
     constructor: Node,
     
     onEvent: function (event) {
-        var me = this,
-            CORE = LIBCORE,
+        var CORE = LIBCORE,
             message = event.eventMessage;
         
         if (CORE.object(message)) {
             
-            me.each(message.type, me, event.data);
+            //me.callEach(message.type, me, event.data);
             
-            console.log('message! ', message);
+            //console.log('message! ', message);
         }
         
     },
     
-    each: function (methodName) {
+    callEach: function (methodName) {
         var args = Array.prototype.slice.call(arguments, 0),
             isMethod = LIBCORE.method,
             list = this.components,
@@ -159,6 +183,16 @@ Node.prototype = {
                 }
             }
         }
+    },
+    
+    getParent: function () {
+        var node = this.dom;
+        for (; node; node = node.parentNode) {
+            if (bindInfo(node) === INFO_BOUND) {
+                return node;
+            }
+        }
+        return null;
     },
     
     publish: function () {

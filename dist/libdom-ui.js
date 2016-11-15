@@ -3755,7 +3755,7 @@
         }());
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var LIBDOM = __webpack_require__(3), LIBCORE = __webpack_require__(5), COMPONENT = __webpack_require__(44), Store = __webpack_require__(46), NODE_ATTRIBUTE = "data-ui-node", NODE_ID_GEN = 0, NULL = null, DOM_EVENT_NAME = "libdom-ui-event", BINDS = LIBCORE.createRegistry();
+        var LIBDOM = __webpack_require__(3), LIBCORE = __webpack_require__(5), COMPONENT = __webpack_require__(44), EVENT = __webpack_require__(46), Store = __webpack_require__(47), INFO_INVALID = 0, INFO_BOUND = 1, INFO_CAN_BIND = 2, INFO_ELEMENT = 3, NODE_ATTRIBUTE = "data-ui-node", NODE_ID_GEN = 0, NULL = null, BINDS = LIBCORE.createRegistry();
         function getNodeFromElement(element) {
             var list = BINDS;
             var id;
@@ -3765,12 +3765,23 @@
             }
             return null;
         }
-        function canBind(element) {
-            return LIBDOM.is(element, 1) && !!COMPONENT.roles(element);
+        function bindInfo(element) {
+            var id;
+            if (LIBDOM.is(element, 1)) {
+                if (COMPONENT.roles(element)) {
+                    id = element.getAttribute(NODE_ATTRIBUTE);
+                    if (id && BINDS.exists(id)) {
+                        return INFO_BOUND;
+                    }
+                    return INFO_CAN_BIND;
+                }
+                return INFO_ELEMENT;
+            }
+            return INFO_INVALID;
         }
         function bindNode(element, includeChildren) {
             var node;
-            if (canBind(element)) {
+            if (bindInfo(element) === INFO_CAN_BIND) {
                 node = getNodeFromElement(element);
                 if (!node) {
                     node = new Node(element);
@@ -3793,34 +3804,34 @@
             }
             child = null;
         }
-        function bindMethod(instance, name) {
-            var original = instance[name];
-            function boundToInstance() {
-                return original.apply(instance, arguments);
+        function bindComponentListenerCallback(event, methodName, method, component) {
+            var node = this;
+            function boundToEvent(event) {
+                return method.call(this, event, node);
             }
-            instance[name] = boundToInstance;
-            return boundToInstance;
+            component[methodName] = boundToEvent;
+            LIBDOM.on(node.dom, event, boundToEvent, component);
+        }
+        function unbindComponentListenerCallback(event, methodName, method, component) {
+            var node = this;
+            LIBDOM.un(node.dom, event, method, component);
         }
         function Node(element) {
-            var me = this, DOM = LIBDOM, component = COMPONENT, create = component.create, bind = bindMethod, id = "node" + ++NODE_ID_GEN, names = COMPONENT.roles(element), dispatchName = DOM_EVENT_NAME, instances = [], except = {}, c = -1, l = names.length;
+            var me = this, component = COMPONENT, create = component.create, id = "node" + ++NODE_ID_GEN, names = component.roles(element), eachListener = EVENT.eachListener, instances = [], except = {};
+            var c, l;
             me.destroyed = false;
             me.id = id;
             me.dom = element;
             me.store = new Store();
             element.setAttribute(NODE_ATTRIBUTE, id);
             BINDS.set(id, me);
-            for (;l--; ) {
+            for (c = -1, l = names.length; l--; ) {
                 create(names[++c], instances, except);
             }
             me.components = instances;
-            bind(me, "onEvent");
-            DOM.on(element, dispatchName, me.onEvent);
-            DOM.dispatch(element, dispatchName, {
-                eventMessage: {
-                    type: "attach",
-                    data: null
-                }
-            });
+            for (c = -1, l = instances.length; l--; ) {
+                eachListener(instances[++c], bindComponentListenerCallback, me);
+            }
         }
         Node.prototype = {
             id: NULL,
@@ -3830,13 +3841,10 @@
             destroyed: true,
             constructor: Node,
             onEvent: function(event) {
-                var me = this, CORE = LIBCORE, message = event.eventMessage;
-                if (CORE.object(message)) {
-                    me.each(message.type, me, event.data);
-                    console.log("message! ", message);
-                }
+                var CORE = LIBCORE, message = event.eventMessage;
+                if (CORE.object(message)) {}
             },
-            each: function(methodName) {
+            callEach: function(methodName) {
                 var args = Array.prototype.slice.call(arguments, 0), isMethod = LIBCORE.method, list = this.components, c = -1, l = list.length;
                 var method, component;
                 for (;l--; ) {
@@ -3849,6 +3857,15 @@
                         }
                     }
                 }
+            },
+            getParent: function() {
+                var node = this.dom;
+                for (;node; node = node.parentNode) {
+                    if (bindInfo(node) === INFO_BOUND) {
+                        return node;
+                    }
+                }
+                return null;
             },
             publish: function() {},
             dispatch: function() {},
@@ -4015,12 +4032,54 @@
             eventHandlers: [],
             requires: [],
             constructor: Base,
+            onClick: function() {
+                console.log("clicked!", arguments);
+            },
             destroy: function() {}
         };
         module.exports = Base;
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var LIBCORE = __webpack_require__(5), isString = LIBCORE.string, DATA = __webpack_require__(47);
+        var LIBCORE = __webpack_require__(5), LISTENER_RE = /^on([a-zA-Z].*)$/;
+        function methodToEventName(name) {
+            var match = name.match(LISTENER_RE);
+            var raw;
+            if (match) {
+                raw = match[1];
+                return LIBCORE.uncamelize(raw.charAt(0).toLowerCase() + raw.substring(1, raw.length));
+            }
+            return null;
+        }
+        function eventNameToMethod(name) {
+            return LIBCORE.camelize(name.charAt(0).toUpperCase() + name.substring(1, name.length));
+        }
+        function eachListener(instance, callback, scope) {
+            var param = [ callback, scope ];
+            LIBCORE.each(instance, eachListenerCallback, param, false);
+        }
+        function eachListenerCallback(value, name, instance) {
+            var param = this, eventName = methodToEventName(name);
+            if (eventName && LIBCORE.method(value)) {
+                return param[0].call(param[1], eventName, name, value, instance);
+            }
+            return true;
+        }
+        function bindMethod(instance, name) {
+            var original = instance[name];
+            function boundToEvent() {
+                return original.apply(instance, arguments);
+            }
+            instance[name] = boundToEvent;
+        }
+        module.exports = {
+            bind: bindMethod,
+            eachListener: eachListener,
+            method2name: methodToEventName,
+            name2method: eventNameToMethod
+        };
+    }, function(module, exports, __webpack_require__) {
+        "use strict";
+        var LIBCORE = __webpack_require__(5), isString = LIBCORE.string, DATA = __webpack_require__(48);
         function Store() {
             this.data = {};
         }
