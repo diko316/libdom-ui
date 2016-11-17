@@ -1,88 +1,109 @@
 'use strict';
 
-var LIBDOM = require("libdom"),
-    LIBCORE = require("libcore"),
-    COMPONENT = require("./component.js"),
+var LIBCORE = require('libcore'),
+    LIBDOM = require('libdom'),
     EVENT = require("./event.js"),
-    Store = require("./store.js"),
-    INFO_INVALID = 0,
-    INFO_BOUND = 1,
-    INFO_CAN_BIND = 2,
-    INFO_ELEMENT = 3,
+    COMPONENT = require('./component.js'),
+    ROLE_ATTRIBUTE = 'role',
+    REGISTERED_NODE_ATTRIBUTE = 'data-ui-node',
+    NODE_STATE_RE = /^(uninitialized|loading|interactive|detached)$/,
+    STAT_INVALID_DOM = 0,
+    STAT_CAN_BIND = 1,
+    STAT_BINDED = 2,
+    STAT_ELEMENT = 3,
+    EXPORTS = {
+        bind: bind
+    };
     
-    NODE_ATTRIBUTE = "data-ui-node",
-    NODE_ID_GEN = 0,
-    NULL = null,
-    BINDS = LIBCORE.createRegistry();
-
-
-/**
- * Node bindings
- */
-function getNodeFromElement(element) {
-    var list = BINDS;
-    var id;
-
-    id = element.getAttribute(NODE_ATTRIBUTE);
-    if (list.exists(id)) {
-        return list.get(id);
-    }
+function empty() {
     
-    return null;
 }
 
-function bindInfo(element) {
-    var id;
-    if (LIBDOM.is(element, 1)) {
-        id = element.getAttribute(NODE_ATTRIBUTE);
-        if (id && BINDS.exists(id)) {
-            return INFO_BOUND;
+function stat(dom) {
+    var type = dom.nodeType,
+        isString = LIBCORE.string;
+    var roles, state;
+    
+    if (type === 1) {
+        
+        state = dom.getAttribute(REGISTERED_NODE_ATTRIBUTE);
+        if (isString(state) && NODE_STATE_RE.test(state)) {
+            return STAT_BINDED;
         }
         
-        return COMPONENT.roles(element) ?
-                    INFO_CAN_BIND : INFO_ELEMENT;
-
-    }
-    return INFO_INVALID;
-}
-
-function bindNode(element, includeChildren) {
-    var node;
-
-    if (bindInfo(element) === INFO_CAN_BIND) {
-        node = getNodeFromElement(element);
-        if (!node) {
-            node = new Node(element);
-        }
-    }
-    
-    if (includeChildren === true) {
-        bindChildren(element);
-    }
-
-    return node;
-}
-
-function bindChildren(element) {
-    var DOM = LIBDOM,
-        each = DOM.eachNodePreorder,
-        bind = bindNode;
-    var child;
-    
-    if (DOM.is(element, 1)) {
-        for (child = element.firstChild; child; child = child.nextSibling) {
-            if (child.nodeType === 1) {
-                each(child, bind);
+        roles = dom.getAttribute(ROLE_ATTRIBUTE);
+        if (isString(roles)) {
+            roles = COMPONENT.validRoles(roles);
+            if (roles) {
+                return STAT_CAN_BIND;
             }
         }
+        
+        return STAT_ELEMENT;
     }
-    child = null;
+    
+    return STAT_INVALID_DOM;
 }
 
-/**
- * Node Events
- */
-function bindComponentListenerCallback(event, methodName, method, component) {
+function bind(dom, parent) {
+    var Class = Node;
+    var node;
+    
+    switch (stat(dom)) {
+    case STAT_CAN_BIND:
+        if (parent) {
+            empty.prototype = parent;
+            node = new empty();
+            Class.call(node, dom, parent);
+        }
+        else {
+            node = new Class(dom, parent);
+        }
+        return node;
+    case STAT_BINDED: return true;
+    default: return false;
+    }
+}
+
+
+function bindDescendants(element, parent, includeCurrent) {
+    var depth = 0,
+        dom = element,
+        localBind = bind;
+    var current;
+    
+    if (includeCurrent !== false) {
+        localBind(dom);
+    }
+    
+    
+    for (current = dom; current;) {
+        // go down 1 level
+        if (!localBind(dom, parent)) {
+            dom = current.firstChild;
+            if (dom) {
+                depth++;
+                current = dom;
+                continue;
+            }
+        }
+        
+        // try next sibling or go up check next parent's next sibling
+        dom = current.nextSibling;
+        for (; !dom && depth-- && current;) {
+            current = current.parentNode;
+            dom = current.nextSibling;
+        }
+
+        current = dom;
+    }
+    
+    dom = current = null;
+    
+}
+
+
+function onListenComponentListener(event, methodName, method, component) {
     /* jshint validthis:true */
     var node = this;
     
@@ -94,178 +115,123 @@ function bindComponentListenerCallback(event, methodName, method, component) {
     component[methodName] = boundToEvent;
     
     LIBDOM.on(node.dom, event, boundToEvent, component);
+    node = null;
 }
 
-function unbindComponentListenerCallback(event, methodName, method, component) {
+function onUnlistenComponentListener(event, methodName, method, component) {
     /* jshint validthis:true */
     var node = this;
     LIBDOM.un(node.dom, event, method, component);
-    delete component.node;
+    node = null;
 }
 
-
-function publishCallback(element) {
-    /* jshint validthis:true */
-    var params = this,
-        node = getNodeFromElement(element);
-    
-    // dispatch
-    if (node) {
-        node.dispatch(params[0], params[1]);
-    }
-}
-
-
-/**
- * Node Class
- */
-
-function Node(element) {
+function Node(dom, parent) {
     var me = this,
         component = COMPONENT,
         create = component.create,
-        id = 'node' + (++NODE_ID_GEN),
-        names = component.roles(element),
-        eachListener = EVENT.eachListener,
-        bind = bindComponentListenerCallback,
-        instances = [],
+        names = component.roles(dom),
+        each = EVENT.eachListener,
+        listen = onListenComponentListener,
+        components = [],
         except = {};
-        
-        
-    var c, l;
+    var c, l, item;
     
     me.destroyed = false;
-    me.id = id;
-    me.dom = element;
-    element.setAttribute(NODE_ATTRIBUTE, id);
-    BINDS.set(id, me);
+    me.dom = dom;
     
-    // instantiate components
+    // create dom-like properties
+    if (parent) {
+        me.parent = parent;
+        item = parent.lastChild;
+        if (item) {
+            item.nextSibling = me;
+            me.previousSibling = item;
+        }
+        else {
+            parent.firstChild = me;
+        }
+        parent.lastChild = me;
+    }
+    
+    me.components = components;
+    
+    // set flag as bound
+    dom.setAttribute(REGISTERED_NODE_ATTRIBUTE, 'uninitialized');
+    
+    // bind components
     for (c = -1, l = names.length; l--;) {
-        create(names[++c], instances, except);
+        create(names[++c], components, except);
+    }
+    // listen
+    for (c = -1, l = components.length; l--;) {
+        each(components[++c], listen, me);
     }
     
-    me.components = instances;
+    // bind descendants
     
-    // apply component listener
-    for (c = -1, l = instances.length; l--;) {
-        eachListener(instances[++c], bind, me);
-    }
-    
-    // initialize component at this point
-    me.dispatch('cmp-ready');
 }
 
 Node.prototype = {
-    
-    id: NULL,
-    components: NULL,
-    dom: NULL,
-    store: NULL,
+    dom: null,
+    parent: null,
+    firstChild: null,
+    lastChild: null,
+    previousSibling: null,
+    nextSibing: null,
     destroyed: true,
-    
     constructor: Node,
-    
-    parent: function () {
-        var me = this,
-            isBound = INFO_BOUND,
-            node = me.dom;
-        
-        if (node && !me.destroyed) {
-            for (; node; node = node.parentNode) {
-                if (bindInfo(node) === isBound) {
-                    return node;
-                }
-            }
-        }
-        return null;
-    },
-    
-    root: function () {
-        var me = this,
-            isBound = INFO_BOUND,
-            node = me.dom,
-            found = null;
-            
-        if (node && !me.destroyed) {
-            node = node.parentNode;
-            for (; node; node = node.parentNode) {
-                if (bindInfo(node) === isBound) {
-                    found = node;
-                }
-            }
-            node = null;
-        }
-        return found;
-    },
-    
-    publish: function (type, data) {
-        var me = this,
-            root = me.root(),
-            CORE = LIBCORE;
-        var dom;
-        
-        if (root && !root.destroyed) {
-            dom = root.dom;
-            if (dom && CORE.string(type)) {
-                if (!CORE.object(data)) {
-                    data = {};
-                }
-                // no bubbling allowed
-                data.bubbles = false;
-                LIBDOM.eachNodePreorder(dom,
-                                        publishCallback,
-                                        [type, data]);
-            }
-            dom = null;
-        }
-        return me;
-    },
-    
-    dispatch: function (type, data) {
-        var me = this,
-            dom = me.dom,
-            CORE = LIBCORE;
-        if (!me.destroyed && dom) {
-            if (CORE.string(type)) {
-                if (!CORE.object(data)) {
-                    data = {};
-                }
-                return LIBDOM.dispatch(dom, type, data);
-            }
-        }
-        return null;
-    },
-    
     destroy: function () {
         var me = this,
-            unbind = unbindComponentListenerCallback,
-            dom = me.dom,
-            eachListener = EVENT.eachListener;
-        var total, l, list, component;
+            each = EVENT.eachListener,
+            unlisten = onUnlistenComponentListener;
+        var components, l, parent, previous, next, node;
         
         if (!me.destroyed) {
-
-            // destroy components
-            this.dispatch('destroy', { bubbles: false });
-            
             delete me.destroyed;
             
-            list = me.components;
-            for (total = l = list.length; l--;) {
-                component = list[l];
-                eachListener(component, unbind, me);
+            // call destroy
+            LIBDOM.dispatch(me.dom, 'destroy', { bubbles: false });
+            
+            // destroy child nodes
+            for (node = me.firstChild; node; node = node.nextSibling) {
+                node.destroy();
             }
             
-            list.splice(0, total);
+            // unlisten
+            components = me.components;
+            if (components) {
+                for (l = components.length; l--;) {
+                    each(components[l], unlisten, me);
+                }
+                components.length = 0;
+            }
+            delete me.components;
             
+            parent = me.parent;
+            
+            if (parent) {
+                // remove sibling relation
+                previous = me.previousSibling;
+                next = me.nextSibling;
+                if (previous) {
+                    previous.nextSibling = next;
+                }
+                if (next) {
+                    next.previousSibling = previous;
+                }
+                // remove parent relationship
+                if (parent.firstChild === me) {
+                    parent.firstChild = previous || next;
+                }
+                if (parent.lastChild === me) {
+                    parent.lastChild = next || previous;
+                }
+            }
+            
+            // clear!
+            LIBCORE.clear(me);
         }
-        dom = list = null;
     }
 };
 
-
-module.exports = {
-    bind: bindNode,
-    bindChildren: bindChildren
-};
+module.exports = EXPORTS;

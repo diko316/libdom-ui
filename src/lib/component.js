@@ -6,11 +6,11 @@ var LIBCORE = require("libcore"),
     ROLE_ATTRIBUTE = 'role',
     BASE_CLASS = "base",
     BASE_COMPONENT = require("./component/base.js"),
-    EVENT_METHOD_RE = /^on.+/,
     COMPONENTS = LIBCORE.createRegistry(),
     EXPORTS = {
         register: register,
         roles: getRoles,
+        validRoles: getRegisteredRoles,
         create: instantiate
     };
 

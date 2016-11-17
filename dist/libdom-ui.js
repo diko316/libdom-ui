@@ -26,13 +26,13 @@
         if (DOM.env.browser) {
             DOM.ui = EXPORTS;
             try {
-                __webpack_require__(38);
+                __webpack_require__(39);
             } catch (e) {}
-            rehash(EXPORTS, __webpack_require__(42), {
+            rehash(EXPORTS, __webpack_require__(43), {
                 createBus: "create",
                 bus: "bus"
             });
-            rehash(EXPORTS, __webpack_require__(43), {
+            rehash(EXPORTS, __webpack_require__(44), {
                 bind: "bind"
             });
         }
@@ -43,17 +43,17 @@
     }, function(module, exports, __webpack_require__) {
         (function(global) {
             "use strict";
-            var CORE = __webpack_require__(5), detect = __webpack_require__(16), rehash = CORE.rehash, EXPORTS = {
+            var CORE = __webpack_require__(5), detect = __webpack_require__(17), rehash = CORE.rehash, EXPORTS = {
                 env: CORE.env,
                 info: detect
             };
             var css, event, dimension, selection;
             if (detect) {
-                rehash(EXPORTS, __webpack_require__(23), {
+                rehash(EXPORTS, __webpack_require__(24), {
                     xmlEncode: "xmlEncode",
                     xmlDecode: "xmlDecode"
                 });
-                rehash(EXPORTS, __webpack_require__(24), {
+                rehash(EXPORTS, __webpack_require__(25), {
                     is: "is",
                     isView: "isView",
                     contains: "contains",
@@ -66,36 +66,36 @@
                     replace: "replace",
                     remove: "remove"
                 });
-                rehash(EXPORTS, css = __webpack_require__(26), {
+                rehash(EXPORTS, css = __webpack_require__(27), {
                     addClass: "add",
                     removeClass: "remove",
                     computedStyle: "computedStyle",
                     stylize: "style"
                 });
-                rehash(EXPORTS, event = __webpack_require__(25), {
+                rehash(EXPORTS, event = __webpack_require__(26), {
                     on: "on",
                     un: "un",
                     purge: "purge",
                     dispatch: "fire",
                     destructor: "ondestroy"
                 });
-                rehash(EXPORTS, dimension = __webpack_require__(34), {
+                rehash(EXPORTS, dimension = __webpack_require__(35), {
                     offset: "offset",
                     size: "size",
                     box: "box",
                     scroll: "scroll",
                     screen: "screen"
                 });
-                rehash(EXPORTS, selection = __webpack_require__(35), {
+                rehash(EXPORTS, selection = __webpack_require__(36), {
                     highlight: "select",
                     noHighlight: "unselectable",
                     clearHighlight: "clear"
                 });
-                rehash(EXPORTS, __webpack_require__(27), {
+                rehash(EXPORTS, __webpack_require__(28), {
                     parseColor: "parse",
                     formatColor: "stringify"
                 });
-                rehash(EXPORTS, __webpack_require__(36), {
+                rehash(EXPORTS, __webpack_require__(37), {
                     eachDisplacement: "each",
                     animateStyle: "style"
                 });
@@ -119,8 +119,9 @@
         OBJECT.assign(EXPORTS, __webpack_require__(11));
         OBJECT.assign(EXPORTS, PROCESSOR);
         OBJECT.assign(EXPORTS, __webpack_require__(14));
+        OBJECT.assign(EXPORTS, __webpack_require__(15));
         PROCESSOR.chain = EXPORTS;
-        EXPORTS.Promise = __webpack_require__(15);
+        EXPORTS.Promise = __webpack_require__(16);
         module.exports = EXPORTS["default"] = EXPORTS;
     }, function(module, exports, __webpack_require__) {
         (function(global) {
@@ -552,7 +553,7 @@
             clone: clone,
             compare: compare,
             fillin: fillin,
-            fillJson: jsonFill,
+            urlFill: jsonFill,
             clear: clear
         };
     }, function(module, exports, __webpack_require__) {
@@ -1079,6 +1080,159 @@
             createRegistry: create
         };
     }, function(module, exports, __webpack_require__) {
+        "use strict";
+        var TYPE = __webpack_require__(10), OBJECT = __webpack_require__(9), NUMERIC_RE = /^([1-9][0-9]*|0)$/;
+        function eachPath(path, callback, arg1, arg2, arg3, arg4) {
+            var escape = "\\", dot = ".", buffer = [], bl = 0;
+            var c, l, chr, apply, last;
+            for (c = -1, l = path.length; l--; ) {
+                chr = path.charAt(++c);
+                apply = false;
+                last = !l;
+                switch (chr) {
+                  case escape:
+                    chr = "";
+                    if (l) {
+                        chr = path.charAt(++c);
+                        l--;
+                    }
+                    break;
+
+                  case dot:
+                    chr = "";
+                    apply = true;
+                    break;
+                }
+                if (chr) {
+                    buffer[bl++] = chr;
+                }
+                if (last || apply) {
+                    if (bl) {
+                        if (callback(buffer.join(""), last, arg1, arg2, arg3, arg4) === false) {
+                            return;
+                        }
+                        buffer.length = bl = 0;
+                    }
+                }
+            }
+        }
+        function isAccessible(subject, item) {
+            var type = TYPE;
+            switch (true) {
+              case type.object(subject):
+              case type.array(subject) && (!NUMERIC_RE.test(item) || item !== "length"):
+                if (!OBJECT.contains(subject, item)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        function findCallback(item, last, operation) {
+            var subject = operation[1];
+            if (!isAccessible(subject, item)) {
+                operation[0] = void 0;
+                return false;
+            }
+            operation[last ? 0 : 1] = subject[item];
+            return true;
+        }
+        function find(path, object) {
+            var operation = [ void 0, object ];
+            eachPath(path, findCallback, operation);
+            operation[1] = null;
+            return operation[0];
+        }
+        function clone(path, object, deep) {
+            return OBJECT.clone(find(path, object), deep);
+        }
+        function getItemsCallback(item, last, operation) {
+            operation[operation.length] = item;
+        }
+        function assign(path, subject, value, overwrite) {
+            var type = TYPE, has = OBJECT.contains, array = type.array, object = type.object, apply = type.assign, parent = subject, numericRe = NUMERIC_RE;
+            var items, c, l, item, name, numeric, property, isArray, temp;
+            if (object(parent) || array(parent)) {
+                eachPath(path, getItemsCallback, items = []);
+                if (items.length) {
+                    name = items[0];
+                    items.splice(0, 1);
+                    for (c = -1, l = items.length; l--; ) {
+                        item = items[++c];
+                        numeric = numericRe.test(item);
+                        if (has(parent, name)) {
+                            property = parent[name];
+                            isArray = array(property);
+                            if (!isArray && !object(property)) {
+                                if (numeric) {
+                                    property = [ property ];
+                                } else {
+                                    temp = property;
+                                    property = {};
+                                    property[""] = temp;
+                                }
+                            } else if (isArray && !numeric) {
+                                property = apply({}, property);
+                                delete property.length;
+                            }
+                        } else {
+                            property = numeric ? [] : {};
+                        }
+                        parent = parent[name] = property;
+                        name = item;
+                    }
+                    if (overwrite !== true && has(parent, name)) {
+                        property = parent[name];
+                        if (array(property)) {
+                            parent = property;
+                            name = parent.length;
+                        } else {
+                            parent = parent[name] = [ property ];
+                            name = 1;
+                        }
+                    }
+                    parent[name] = value;
+                    parent = value = property = temp = null;
+                    return true;
+                }
+            }
+            return false;
+        }
+        function removeCallback(item, last, operation) {
+            var subject = operation[0];
+            var isLength;
+            if (!isAccessible(subject, item)) {
+                return false;
+            }
+            if (last) {
+                if (TYPE.array(subject)) {
+                    isLength = item === "length";
+                    subject.splice(isLength ? 0 : item.toString(10), isLength ? subject.length : 1);
+                } else {
+                    delete subject[item];
+                }
+                operation[1] = true;
+            } else {
+                operation[0] = subject[item];
+            }
+        }
+        function remove(path, object) {
+            var operation = [ object, false ];
+            eachPath(path, removeCallback, operation);
+            operation[0] = null;
+            return operation[1];
+        }
+        function compare(path, object1, object2) {
+            return OBJECT.compare(find(path, object1), object1, object2);
+        }
+        module.exports = {
+            jsonFind: find,
+            jsonCompare: compare,
+            jsonClone: clone,
+            jsonEach: eachPath,
+            jsonSet: assign,
+            jsonUnset: remove
+        };
+    }, function(module, exports, __webpack_require__) {
         (function(global) {
             "use strict";
             var TYPE = __webpack_require__(10), OBJECT = __webpack_require__(9), PROCESSOR = __webpack_require__(12), slice = Array.prototype.slice, G = global, INDEX_STATUS = 0, INDEX_DATA = 1, INDEX_PENDING = 2;
@@ -1249,15 +1403,15 @@
         }());
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var browser = __webpack_require__(17), EXPORTS = false;
+        var browser = __webpack_require__(18), EXPORTS = false;
         if (browser) {
             EXPORTS = {
                 browser: browser,
-                event: __webpack_require__(18),
-                dom: __webpack_require__(19),
-                css: __webpack_require__(20),
-                dimension: __webpack_require__(21),
-                selection: __webpack_require__(22)
+                event: __webpack_require__(19),
+                dom: __webpack_require__(20),
+                css: __webpack_require__(21),
+                dimension: __webpack_require__(22),
+                selection: __webpack_require__(23)
             };
         }
         module.exports = EXPORTS;
@@ -1347,7 +1501,7 @@
     }, function(module, exports, __webpack_require__) {
         (function(global) {
             "use strict";
-            var DETECTED = __webpack_require__(17), WINDOW = global.window, ieVersion = DETECTED.ieVersion;
+            var DETECTED = __webpack_require__(18), WINDOW = global.window, ieVersion = DETECTED.ieVersion;
             module.exports = {
                 screensize: typeof WINDOW.innerWidth !== "undefined",
                 pagescroll: typeof WINDOW.pageXOffset !== "undefined",
@@ -1491,7 +1645,7 @@
         }());
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var CORE = __webpack_require__(5), DETECTED = __webpack_require__(16), EVENT = __webpack_require__(25), STRING = __webpack_require__(23), ORDER_TYPE_PREORDER = 1, ORDER_TYPE_POSTORDER = 2, ORDER_TYPE_LEVELORDER = 3, ERROR_INVALID_DOM = STRING[1101], ERROR_INVALID_DOM_NODE = STRING[1103], ERROR_INVALID_CSS_SELECTOR = STRING[1111], ERROR_INVALID_CALLBACK = STRING[1112], ERROR_INVALID_ELEMENT_CONFIG = STRING[1121], INVALID_DESCENDANT_NODE_TYPES = {
+        var CORE = __webpack_require__(5), DETECTED = __webpack_require__(17), EVENT = __webpack_require__(26), STRING = __webpack_require__(24), ORDER_TYPE_PREORDER = 1, ORDER_TYPE_POSTORDER = 2, ORDER_TYPE_LEVELORDER = 3, ERROR_INVALID_DOM = STRING[1101], ERROR_INVALID_DOM_NODE = STRING[1103], ERROR_INVALID_CSS_SELECTOR = STRING[1111], ERROR_INVALID_CALLBACK = STRING[1112], ERROR_INVALID_ELEMENT_CONFIG = STRING[1121], INVALID_DESCENDANT_NODE_TYPES = {
             9: 1,
             11: 1
         }, STD_CONTAINS = notSupportedContains, DOM_ATTRIBUTE_RE = /(^\_|[^a-zA-Z\_])/, DOM_ATTRIBUTE_LIST = [ "nodeType", "nodeValue", "ownerDocument", "tagName", "attributes", "parentNode", "childNodes", "firstChild", "lastChild", "previousSibling", "nextSibling", "sourceIndex", "type" ], EVENT_ATTRIBUTE_RE = /^on(\-?[a-zA-Z].+)?$/, MANIPULATION_HELPERS = CORE.createRegistry(), EXPORTS = {
@@ -1915,7 +2069,7 @@
     }, function(module, exports, __webpack_require__) {
         (function(global) {
             "use strict";
-            var CORE = __webpack_require__(5), INFO = __webpack_require__(16), STRING = __webpack_require__(23), EVENTS = null, PAGE_UNLOADED = false, MIDDLEWARE = CORE.middleware("libdom.event"), IE_CUSTOM_EVENTS = {}, ERROR_OBSERVABLE_NO_SUPPORT = STRING[1131], ERROR_INVALID_TYPE = STRING[1132], ERROR_INVALID_HANDLER = STRING[1133], IE_ON = "on", IE_BUBBLE_EVENT = "beforeupdate", IE_NO_BUBBLE_EVENT = "propertychange", EXPORTS = module.exports = {
+            var CORE = __webpack_require__(5), INFO = __webpack_require__(17), STRING = __webpack_require__(24), EVENTS = null, PAGE_UNLOADED = false, MIDDLEWARE = CORE.middleware("libdom.event"), IE_CUSTOM_EVENTS = {}, ERROR_OBSERVABLE_NO_SUPPORT = STRING[1131], ERROR_INVALID_TYPE = STRING[1132], ERROR_INVALID_HANDLER = STRING[1133], IE_ON = "on", IE_BUBBLE_EVENT = "beforeupdate", IE_NO_BUBBLE_EVENT = "propertychange", EXPORTS = module.exports = {
                 on: listen,
                 un: unlisten,
                 fire: dispatch,
@@ -2245,7 +2399,7 @@
     }, function(module, exports, __webpack_require__) {
         (function(global) {
             "use strict";
-            var CORE = __webpack_require__(5), STRING = __webpack_require__(23), DETECTED = __webpack_require__(16), DOM = __webpack_require__(24), COLOR = __webpack_require__(27), PADDING_BOTTOM = "paddingBottom", PADDING_TOP = "paddingTop", PADDING_LEFT = "paddingLeft", PADDING_RIGHT = "paddingRight", OFFSET_LEFT = "offsetLeft", OFFSET_TOP = "offsetTop", OFFSET_WIDTH = "offsetWidth", OFFSET_HEIGHT = "offsetHeight", CLIENT_WIDTH = "clientWidth", CLIENT_HEIGHT = "clientHeight", COLOR_RE = /[Cc]olor$/, EM_OR_PERCENT_RE = /%|em/, CSS_MEASUREMENT_RE = /^([0-9]*\.?[0-9]+|[0-9]+\.?[0-9]*)(em|px|\%|pt|vh|vw|cm|ex|in|mm|pc|vmin)$/, WIDTH_RE = /width/i, NUMBER_RE = /\d/, BOX_RE = /(top|bottom|left|right|width|height)$/, DIMENSION_RE = /([Tt]op|[Bb]ottom|[Ll]eft|[Rr]ight|[wW]idth|[hH]eight|Size|Radius)$/, IE_ALPHA_OPACITY_RE = /\(opacity\=([0-9]+)\)/i, IE_ALPHA_OPACITY_TEMPLATE = "alpha(opacity=$opacity)", IE_ALPHA_OPACITY_TEMPLATE_RE = /\$opacity/, GET_OPACITY = opacityNotSupported, SET_OPACITY = opacityNotSupported, SET_STYLE = styleManipulationNotSupported, GET_STYLE = styleManipulationNotSupported, ERROR_INVALID_DOM = STRING[1101], EXPORTS = {
+            var CORE = __webpack_require__(5), STRING = __webpack_require__(24), DETECTED = __webpack_require__(17), DOM = __webpack_require__(25), COLOR = __webpack_require__(28), PADDING_BOTTOM = "paddingBottom", PADDING_TOP = "paddingTop", PADDING_LEFT = "paddingLeft", PADDING_RIGHT = "paddingRight", OFFSET_LEFT = "offsetLeft", OFFSET_TOP = "offsetTop", OFFSET_WIDTH = "offsetWidth", OFFSET_HEIGHT = "offsetHeight", CLIENT_WIDTH = "clientWidth", CLIENT_HEIGHT = "clientHeight", COLOR_RE = /[Cc]olor$/, EM_OR_PERCENT_RE = /%|em/, CSS_MEASUREMENT_RE = /^([0-9]*\.?[0-9]+|[0-9]+\.?[0-9]*)(em|px|\%|pt|vh|vw|cm|ex|in|mm|pc|vmin)$/, WIDTH_RE = /width/i, NUMBER_RE = /\d/, BOX_RE = /(top|bottom|left|right|width|height)$/, DIMENSION_RE = /([Tt]op|[Bb]ottom|[Ll]eft|[Rr]ight|[wW]idth|[hH]eight|Size|Radius)$/, IE_ALPHA_OPACITY_RE = /\(opacity\=([0-9]+)\)/i, IE_ALPHA_OPACITY_TEMPLATE = "alpha(opacity=$opacity)", IE_ALPHA_OPACITY_TEMPLATE_RE = /\$opacity/, GET_OPACITY = opacityNotSupported, SET_OPACITY = opacityNotSupported, SET_STYLE = styleManipulationNotSupported, GET_STYLE = styleManipulationNotSupported, ERROR_INVALID_DOM = STRING[1101], EXPORTS = {
                 add: addClass,
                 remove: removeClass,
                 computedStyle: computedStyleNotSupported,
@@ -2621,12 +2775,12 @@
         }());
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var CORE = __webpack_require__(5), FORMAT = __webpack_require__(28), COLOR_RE = /^(\#?|rgba?|hsla?)(\(([^\,]+(\,[^\,]+){2,3})\)|[a-f0-9]{3}|[a-f0-9]{6})$/, NUMBER_RE = /^[0-9]*\.?[0-9]+|[0-9]+\.?[0-9]*$/, REMOVE_SPACES = /[ \r\n\t\s]+/g, TO_COLOR = {
-            rgb: __webpack_require__(29),
-            rgba: __webpack_require__(30),
-            hsl: __webpack_require__(31),
-            hsla: __webpack_require__(32),
-            hex: __webpack_require__(33)
+        var CORE = __webpack_require__(5), FORMAT = __webpack_require__(29), COLOR_RE = /^(\#?|rgba?|hsla?)(\(([^\,]+(\,[^\,]+){2,3})\)|[a-f0-9]{3}|[a-f0-9]{6})$/, NUMBER_RE = /^[0-9]*\.?[0-9]+|[0-9]+\.?[0-9]*$/, REMOVE_SPACES = /[ \r\n\t\s]+/g, TO_COLOR = {
+            rgb: __webpack_require__(30),
+            rgba: __webpack_require__(31),
+            hsl: __webpack_require__(32),
+            hsla: __webpack_require__(33),
+            hex: __webpack_require__(34)
         }, EXPORTS = {
             parse: parseColorString,
             parseType: parseType,
@@ -2735,7 +2889,7 @@
         }
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var RGBA = __webpack_require__(30), CORE = __webpack_require__(5), EXPORTS = module.exports = CORE.assign({}, RGBA);
+        var RGBA = __webpack_require__(31), CORE = __webpack_require__(5), EXPORTS = module.exports = CORE.assign({}, RGBA);
         function toString(integer) {
             return "rgb(" + RGBA.toArray(integer).slice(0, 3).join(",") + ")";
         }
@@ -2746,7 +2900,7 @@
         EXPORTS.toInteger = toInteger;
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var CORE = __webpack_require__(5), FORMAT = __webpack_require__(28), BYTE = 255, BYTE_PERCENT = 127, BYTE_HUE = 511, PERCENT = 100, HUE = 360, SATURATION = PERCENT, LUMINOSITY = PERCENT;
+        var CORE = __webpack_require__(5), FORMAT = __webpack_require__(29), BYTE = 255, BYTE_PERCENT = 127, BYTE_HUE = 511, PERCENT = 100, HUE = 360, SATURATION = PERCENT, LUMINOSITY = PERCENT;
         function hue2rgb(p, q, t) {
             t = (t + 1) % 1;
             switch (true) {
@@ -2826,7 +2980,7 @@
         };
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var HSLA = __webpack_require__(31), CORE = __webpack_require__(5), EXPORTS = module.exports = CORE.assign({}, HSLA);
+        var HSLA = __webpack_require__(32), CORE = __webpack_require__(5), EXPORTS = module.exports = CORE.assign({}, HSLA);
         function toString(integer) {
             var values = HSLA.toArray(integer).slice(0, 3);
             values[1] += "%";
@@ -2836,7 +2990,7 @@
         EXPORTS.toString = toString;
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var CORE = __webpack_require__(5), FORMAT = __webpack_require__(28), BYTE = 255, BYTE_PERCENT = 127, BYTE_HUE = 511, HUE = 360, PERCENT = 100;
+        var CORE = __webpack_require__(5), FORMAT = __webpack_require__(29), BYTE = 255, BYTE_PERCENT = 127, BYTE_HUE = 511, HUE = 360, PERCENT = 100;
         function itemize(value, index, format) {
             var F = FORMAT, M = Math, percent = PERCENT, parse = parseFloat, min = 0, max = index < 1 ? HUE : percent;
             switch (format) {
@@ -2883,7 +3037,7 @@
         };
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var RGBA = __webpack_require__(30), CORE = __webpack_require__(5), EXPORTS = module.exports = CORE.assign({}, RGBA);
+        var RGBA = __webpack_require__(31), CORE = __webpack_require__(5), EXPORTS = module.exports = CORE.assign({}, RGBA);
         function toHex(integer) {
             var M = Math;
             integer = M.max(0, M.min(integer, 255));
@@ -2900,7 +3054,7 @@
     }, function(module, exports, __webpack_require__) {
         (function(global) {
             "use strict";
-            var CORE = __webpack_require__(5), DETECTED = __webpack_require__(16), STRING = __webpack_require__(23), DOM = __webpack_require__(24), CSS = __webpack_require__(26), ERROR_INVALID_ELEMENT = STRING[1101], ERROR_INVALID_DOM = STRING[1102], OFFSET_TOP = "offsetTop", OFFSET_LEFT = "offsetLeft", OFFSET_WIDTH = "offsetWidth", OFFSET_HEIGHT = "offsetHeight", MARGIN_TOP = "marginTop", MARGIN_LEFT = "marginLeft", SCROLL_TOP = "scrollTop", SCROLL_LEFT = "scrollLeft", BOUNDING_RECT = "getBoundingClientRect", DEFAULTVIEW = null, ELEMENT_VIEW = 1, PAGE_VIEW = 2, USE_ZOOM_FACTOR = false, IE_PAGE_STAT_ACCESS = "documentElement", boundingRect = false, getPageScroll = null, getOffset = null, getSize = null, getScreenSize = null, EXPORTS = {
+            var CORE = __webpack_require__(5), DETECTED = __webpack_require__(17), STRING = __webpack_require__(24), DOM = __webpack_require__(25), CSS = __webpack_require__(27), ERROR_INVALID_ELEMENT = STRING[1101], ERROR_INVALID_DOM = STRING[1102], OFFSET_TOP = "offsetTop", OFFSET_LEFT = "offsetLeft", OFFSET_WIDTH = "offsetWidth", OFFSET_HEIGHT = "offsetHeight", MARGIN_TOP = "marginTop", MARGIN_LEFT = "marginLeft", SCROLL_TOP = "scrollTop", SCROLL_LEFT = "scrollLeft", BOUNDING_RECT = "getBoundingClientRect", DEFAULTVIEW = null, ELEMENT_VIEW = 1, PAGE_VIEW = 2, USE_ZOOM_FACTOR = false, IE_PAGE_STAT_ACCESS = "documentElement", boundingRect = false, getPageScroll = null, getOffset = null, getSize = null, getScreenSize = null, EXPORTS = {
                 offset: offset,
                 size: size,
                 box: box,
@@ -3208,7 +3362,7 @@
     }, function(module, exports, __webpack_require__) {
         (function(global) {
             "use strict";
-            var DETECTED = __webpack_require__(16), STRING = __webpack_require__(23), DOM = __webpack_require__(24), DIMENSION = __webpack_require__(34), DETECTED_DOM = DETECTED.dom, DETECTED_SELECTION = DETECTED.selection, ERROR_DOM = STRING[1102], SELECT_ELEMENT = null, CLEAR_SELECTION = null, UNSELECTABLE = attributeUnselectable, CSS_UNSELECT = DETECTED_SELECTION.cssUnselectable, EXPORTS = {
+            var DETECTED = __webpack_require__(17), STRING = __webpack_require__(24), DOM = __webpack_require__(25), DIMENSION = __webpack_require__(35), DETECTED_DOM = DETECTED.dom, DETECTED_SELECTION = DETECTED.selection, ERROR_DOM = STRING[1102], SELECT_ELEMENT = null, CLEAR_SELECTION = null, UNSELECTABLE = attributeUnselectable, CSS_UNSELECT = DETECTED_SELECTION.cssUnselectable, EXPORTS = {
                 select: select,
                 clear: clear,
                 unselectable: unselectable
@@ -3308,7 +3462,7 @@
         }());
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var STRING = __webpack_require__(23), CORE = __webpack_require__(5), EASING = __webpack_require__(37), COLOR = __webpack_require__(27), CSS = __webpack_require__(26), DIMENSION = __webpack_require__(34), SESSION_ACCESS = "__animate_session", BOX_POSITION = {
+        var STRING = __webpack_require__(24), CORE = __webpack_require__(5), EASING = __webpack_require__(38), COLOR = __webpack_require__(28), CSS = __webpack_require__(27), DIMENSION = __webpack_require__(35), SESSION_ACCESS = "__animate_session", BOX_POSITION = {
             left: 0,
             top: 1,
             right: 2,
@@ -3755,53 +3909,75 @@
         }());
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var LIBDOM = __webpack_require__(3), LIBCORE = __webpack_require__(5), COMPONENT = __webpack_require__(44), EVENT = __webpack_require__(46), Store = __webpack_require__(47), INFO_INVALID = 0, INFO_BOUND = 1, INFO_CAN_BIND = 2, INFO_ELEMENT = 3, NODE_ATTRIBUTE = "data-ui-node", NODE_ID_GEN = 0, NULL = null, BINDS = LIBCORE.createRegistry();
-        function getNodeFromElement(element) {
-            var list = BINDS;
-            var id;
-            id = element.getAttribute(NODE_ATTRIBUTE);
-            if (list.exists(id)) {
-                return list.get(id);
-            }
-            return null;
-        }
-        function bindInfo(element) {
-            var id;
-            if (LIBDOM.is(element, 1)) {
-                id = element.getAttribute(NODE_ATTRIBUTE);
-                if (id && BINDS.exists(id)) {
-                    return INFO_BOUND;
+        var LIBCORE = __webpack_require__(5), LIBDOM = __webpack_require__(3), EVENT = __webpack_require__(45), COMPONENT = __webpack_require__(46), ROLE_ATTRIBUTE = "role", REGISTERED_NODE_ATTRIBUTE = "data-ui-node", NODE_STATE_RE = /^(uninitialized|loading|interactive|detached)$/, STAT_INVALID_DOM = 0, STAT_CAN_BIND = 1, STAT_BINDED = 2, STAT_ELEMENT = 3, EXPORTS = {
+            bind: bind
+        };
+        function empty() {}
+        function stat(dom) {
+            var type = dom.nodeType, isString = LIBCORE.string;
+            var roles, state;
+            if (type === 1) {
+                state = dom.getAttribute(REGISTERED_NODE_ATTRIBUTE);
+                if (isString(state) && NODE_STATE_RE.test(state)) {
+                    return STAT_BINDED;
                 }
-                return COMPONENT.roles(element) ? INFO_CAN_BIND : INFO_ELEMENT;
-            }
-            return INFO_INVALID;
-        }
-        function bindNode(element, includeChildren) {
-            var node;
-            if (bindInfo(element) === INFO_CAN_BIND) {
-                node = getNodeFromElement(element);
-                if (!node) {
-                    node = new Node(element);
-                }
-            }
-            if (includeChildren === true) {
-                bindChildren(element);
-            }
-            return node;
-        }
-        function bindChildren(element) {
-            var DOM = LIBDOM, each = DOM.eachNodePreorder, bind = bindNode;
-            var child;
-            if (DOM.is(element, 1)) {
-                for (child = element.firstChild; child; child = child.nextSibling) {
-                    if (child.nodeType === 1) {
-                        each(child, bind);
+                roles = dom.getAttribute(ROLE_ATTRIBUTE);
+                if (isString(roles)) {
+                    roles = COMPONENT.validRoles(roles);
+                    if (roles) {
+                        return STAT_CAN_BIND;
                     }
                 }
+                return STAT_ELEMENT;
             }
-            child = null;
+            return STAT_INVALID_DOM;
         }
-        function bindComponentListenerCallback(event, methodName, method, component) {
+        function bind(dom, parent) {
+            var Class = Node;
+            var node;
+            switch (stat(dom)) {
+              case STAT_CAN_BIND:
+                if (parent) {
+                    empty.prototype = parent;
+                    node = new empty();
+                    Class.call(node, dom, parent);
+                } else {
+                    node = new Class(dom, parent);
+                }
+                return node;
+
+              case STAT_BINDED:
+                return true;
+
+              default:
+                return false;
+            }
+        }
+        function bindDescendants(element, parent, includeCurrent) {
+            var depth = 0, dom = element, localBind = bind;
+            var current;
+            if (includeCurrent !== false) {
+                localBind(dom);
+            }
+            for (current = dom; current; ) {
+                if (!localBind(dom, parent)) {
+                    dom = current.firstChild;
+                    if (dom) {
+                        depth++;
+                        current = dom;
+                        continue;
+                    }
+                }
+                dom = current.nextSibling;
+                for (;!dom && depth-- && current; ) {
+                    current = current.parentNode;
+                    dom = current.nextSibling;
+                }
+                current = dom;
+            }
+            dom = current = null;
+        }
+        function onListenComponentListener(event, methodName, method, component) {
             var node = this;
             function boundToEvent(event) {
                 return method.call(this, event, node);
@@ -3809,121 +3985,133 @@
             component.node = node;
             component[methodName] = boundToEvent;
             LIBDOM.on(node.dom, event, boundToEvent, component);
+            node = null;
         }
-        function unbindComponentListenerCallback(event, methodName, method, component) {
+        function onUnlistenComponentListener(event, methodName, method, component) {
             var node = this;
             LIBDOM.un(node.dom, event, method, component);
-            delete component.node;
+            node = null;
         }
-        function publishCallback(element) {
-            var params = this, node = getNodeFromElement(element);
-            if (node) {
-                node.dispatch(params[0], params[1]);
-            }
-        }
-        function Node(element) {
-            var me = this, component = COMPONENT, create = component.create, id = "node" + ++NODE_ID_GEN, names = component.roles(element), eachListener = EVENT.eachListener, bind = bindComponentListenerCallback, instances = [], except = {};
-            var c, l;
+        function Node(dom, parent) {
+            var me = this, component = COMPONENT, create = component.create, names = component.roles(dom), each = EVENT.eachListener, listen = onListenComponentListener, components = [], except = {};
+            var c, l, item;
             me.destroyed = false;
-            me.id = id;
-            me.dom = element;
-            element.setAttribute(NODE_ATTRIBUTE, id);
-            BINDS.set(id, me);
+            me.dom = dom;
+            if (parent) {
+                me.parent = parent;
+                item = parent.lastChild;
+                if (item) {
+                    item.nextSibling = me;
+                    me.previousSibling = item;
+                } else {
+                    parent.firstChild = me;
+                }
+                parent.lastChild = me;
+            }
+            me.components = components;
+            dom.setAttribute(REGISTERED_NODE_ATTRIBUTE, "uninitialized");
             for (c = -1, l = names.length; l--; ) {
-                create(names[++c], instances, except);
+                create(names[++c], components, except);
             }
-            me.components = instances;
-            for (c = -1, l = instances.length; l--; ) {
-                eachListener(instances[++c], bind, me);
+            for (c = -1, l = components.length; l--; ) {
+                each(components[++c], listen, me);
             }
-            me.dispatch("cmp-ready");
         }
         Node.prototype = {
-            id: NULL,
-            components: NULL,
-            dom: NULL,
-            store: NULL,
+            dom: null,
+            parent: null,
+            firstChild: null,
+            lastChild: null,
+            previousSibling: null,
+            nextSibing: null,
             destroyed: true,
             constructor: Node,
-            parent: function() {
-                var me = this, isBound = INFO_BOUND, node = me.dom;
-                if (node && !me.destroyed) {
-                    for (;node; node = node.parentNode) {
-                        if (bindInfo(node) === isBound) {
-                            return node;
-                        }
-                    }
-                }
-                return null;
-            },
-            root: function() {
-                var me = this, isBound = INFO_BOUND, node = me.dom, found = null;
-                if (node && !me.destroyed) {
-                    node = node.parentNode;
-                    for (;node; node = node.parentNode) {
-                        if (bindInfo(node) === isBound) {
-                            found = node;
-                        }
-                    }
-                    node = null;
-                }
-                return found;
-            },
-            publish: function(type, data) {
-                var me = this, root = me.root(), CORE = LIBCORE;
-                var dom;
-                if (root && !root.destroyed) {
-                    dom = root.dom;
-                    if (dom && CORE.string(type)) {
-                        if (!CORE.object(data)) {
-                            data = {};
-                        }
-                        data.bubbles = false;
-                        LIBDOM.eachNodePreorder(dom, publishCallback, [ type, data ]);
-                    }
-                    dom = null;
-                }
-                return me;
-            },
-            dispatch: function(type, data) {
-                var me = this, dom = me.dom, CORE = LIBCORE;
-                if (!me.destroyed && dom) {
-                    if (CORE.string(type)) {
-                        if (!CORE.object(data)) {
-                            data = {};
-                        }
-                        return LIBDOM.dispatch(dom, type, data);
-                    }
-                }
-                return null;
-            },
             destroy: function() {
-                var me = this, unbind = unbindComponentListenerCallback, dom = me.dom, eachListener = EVENT.eachListener;
-                var total, l, list, component;
+                var me = this, each = EVENT.eachListener, unlisten = onUnlistenComponentListener;
+                var components, l, parent, previous, next, node;
                 if (!me.destroyed) {
-                    this.dispatch("destroy", {
+                    delete me.destroyed;
+                    LIBDOM.dispatch(me.dom, "destroy", {
                         bubbles: false
                     });
-                    delete me.destroyed;
-                    list = me.components;
-                    for (total = l = list.length; l--; ) {
-                        component = list[l];
-                        eachListener(component, unbind, me);
+                    for (node = me.firstChild; node; node = node.nextSibling) {
+                        node.destroy();
                     }
-                    list.splice(0, total);
+                    components = me.components;
+                    if (components) {
+                        for (l = components.length; l--; ) {
+                            each(components[l], unlisten, me);
+                        }
+                        components.length = 0;
+                    }
+                    delete me.components;
+                    parent = me.parent;
+                    if (parent) {
+                        previous = me.previousSibling;
+                        next = me.nextSibling;
+                        if (previous) {
+                            previous.nextSibling = next;
+                        }
+                        if (next) {
+                            next.previousSibling = previous;
+                        }
+                        if (parent.firstChild === me) {
+                            parent.firstChild = previous || next;
+                        }
+                        if (parent.lastChild === me) {
+                            parent.lastChild = next || previous;
+                        }
+                    }
+                    LIBCORE.clear(me);
                 }
-                dom = list = null;
             }
         };
+        module.exports = EXPORTS;
+    }, function(module, exports, __webpack_require__) {
+        "use strict";
+        var LIBCORE = __webpack_require__(5), LISTENER_RE = /^on([a-zA-Z].*)$/;
+        function methodToEventName(name) {
+            var match = name.match(LISTENER_RE);
+            var raw;
+            if (match) {
+                raw = match[1];
+                return LIBCORE.uncamelize(raw.charAt(0).toLowerCase() + raw.substring(1, raw.length));
+            }
+            return null;
+        }
+        function eventNameToMethod(name) {
+            return LIBCORE.camelize(name.charAt(0).toUpperCase() + name.substring(1, name.length));
+        }
+        function eachListener(instance, callback, scope) {
+            var param = [ callback, scope ];
+            LIBCORE.each(instance, eachListenerCallback, param, false);
+        }
+        function eachListenerCallback(value, name, instance) {
+            var param = this, eventName = methodToEventName(name);
+            if (eventName && LIBCORE.method(value)) {
+                return param[0].call(param[1], eventName, name, value, instance);
+            }
+            return true;
+        }
+        function bindMethod(instance, name) {
+            var original = instance[name];
+            function boundToEvent() {
+                return original.apply(instance, arguments);
+            }
+            instance[name] = boundToEvent;
+        }
         module.exports = {
-            bind: bindNode,
-            bindChildren: bindChildren
+            bind: bindMethod,
+            eachListener: eachListener,
+            method2name: methodToEventName,
+            name2method: eventNameToMethod
         };
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var LIBCORE = __webpack_require__(5), LIBDOM = __webpack_require__(3), ROLE_ATTRIBUTE = "role", BASE_CLASS = "base", BASE_COMPONENT = __webpack_require__(45), EVENT_METHOD_RE = /^on.+/, COMPONENTS = LIBCORE.createRegistry(), EXPORTS = {
+        var LIBCORE = __webpack_require__(5), LIBDOM = __webpack_require__(3), ROLE_ATTRIBUTE = "role", BASE_CLASS = "base", BASE_COMPONENT = __webpack_require__(47), COMPONENTS = LIBCORE.createRegistry(), EXPORTS = {
             register: register,
             roles: getRoles,
+            validRoles: getRegisteredRoles,
             create: instantiate
         };
         function getRegisteredRoles(str) {
@@ -4056,254 +4244,6 @@
             destroy: function() {}
         };
         module.exports = Base;
-    }, function(module, exports, __webpack_require__) {
-        "use strict";
-        var LIBCORE = __webpack_require__(5), LISTENER_RE = /^on([a-zA-Z].*)$/;
-        function methodToEventName(name) {
-            var match = name.match(LISTENER_RE);
-            var raw;
-            if (match) {
-                raw = match[1];
-                return LIBCORE.uncamelize(raw.charAt(0).toLowerCase() + raw.substring(1, raw.length));
-            }
-            return null;
-        }
-        function eventNameToMethod(name) {
-            return LIBCORE.camelize(name.charAt(0).toUpperCase() + name.substring(1, name.length));
-        }
-        function eachListener(instance, callback, scope) {
-            var param = [ callback, scope ];
-            LIBCORE.each(instance, eachListenerCallback, param, false);
-        }
-        function eachListenerCallback(value, name, instance) {
-            var param = this, eventName = methodToEventName(name);
-            if (eventName && LIBCORE.method(value)) {
-                return param[0].call(param[1], eventName, name, value, instance);
-            }
-            return true;
-        }
-        function bindMethod(instance, name) {
-            var original = instance[name];
-            function boundToEvent() {
-                return original.apply(instance, arguments);
-            }
-            instance[name] = boundToEvent;
-        }
-        module.exports = {
-            bind: bindMethod,
-            eachListener: eachListener,
-            method2name: methodToEventName,
-            name2method: eventNameToMethod
-        };
-    }, function(module, exports, __webpack_require__) {
-        "use strict";
-        var LIBCORE = __webpack_require__(5), isString = LIBCORE.string, DATA = __webpack_require__(48);
-        function Store() {
-            this.data = {};
-        }
-        Store.prototype = {
-            data: null,
-            constructor: Store,
-            begin: function() {
-                var me = this, cache = me.cache;
-                if (typeof cache === "undefined") {
-                    me.cache = me.clone(null, true);
-                }
-                return me;
-            },
-            commit: function() {
-                var me = this, cache = me.cache;
-                var result;
-                if (LIBCORE.object(cache)) {
-                    result = me.compare(null, cache);
-                    me.cache = me.clone(null, true);
-                    cache = null;
-                    return result;
-                }
-                return false;
-            },
-            end: function() {
-                var me = this, cache = me.cache;
-                var result;
-                if (LIBCORE.object(cache)) {
-                    result = me.compare(null, cache);
-                    me.cache = cache = null;
-                    delete me.cache;
-                    return result;
-                }
-                return false;
-            },
-            set: function(path, value, overwrite) {
-                return isString(path) && DATA.assign(path, this.data, value, overwrite);
-            },
-            unset: function(path) {
-                return isString(path) && DATA.remove(path, this.data);
-            },
-            compare: function(path, data) {
-                var my = this.data, compare = DATA.compare;
-                return isString(path) ? compare(DATA.find(path, my), data) : compare(my, data);
-            },
-            clone: function(path, deep) {
-                var my = this.data, clone = DATA.clone;
-                return isString(path) ? clone(path, my, deep) : clone(my, deep);
-            },
-            clear: function() {
-                var me = this;
-                LIBCORE.clear(me.data);
-                return me;
-            }
-        };
-        module.exports = Store;
-    }, function(module, exports, __webpack_require__) {
-        "use strict";
-        var LIBCORE = __webpack_require__(5), NUMERIC_RE = /^([1-9][0-9]*|0)$/;
-        function eachPath(path, callback, arg1, arg2, arg3, arg4) {
-            var escape = "\\", dot = ".", buffer = [], bl = 0;
-            var c, l, chr, apply, last;
-            for (c = -1, l = path.length; l--; ) {
-                chr = path.charAt(++c);
-                apply = false;
-                last = !l;
-                switch (chr) {
-                  case escape:
-                    chr = "";
-                    if (l) {
-                        chr = path.charAt(++c);
-                        l--;
-                    }
-                    break;
-
-                  case dot:
-                    chr = "";
-                    apply = true;
-                    break;
-                }
-                if (chr) {
-                    buffer[bl++] = chr;
-                }
-                if (last || apply) {
-                    if (bl) {
-                        if (callback(buffer.join(""), last, arg1, arg2, arg3, arg4) === false) {
-                            return;
-                        }
-                        buffer.length = bl = 0;
-                    }
-                }
-            }
-        }
-        function isAccessible(subject, item) {
-            var CORE = LIBCORE;
-            switch (true) {
-              case CORE.object(subject):
-              case CORE.array(subject) && (!NUMERIC_RE.test(item) || item !== "length"):
-                if (!CORE.contains(subject, item)) {
-                    return false;
-                }
-            }
-            return true;
-        }
-        function findCallback(item, last, operation) {
-            var subject = operation[1];
-            if (!isAccessible(subject, item)) {
-                operation[0] = void 0;
-                return false;
-            }
-            operation[last ? 0 : 1] = subject[item];
-            return true;
-        }
-        function find(path, object) {
-            var operation = [ void 0, object ];
-            eachPath(path, findCallback, operation);
-            operation[1] = null;
-            return operation[0];
-        }
-        function clone(path, object, deep) {
-            return LIBCORE.clone(find(path, object), deep);
-        }
-        function getItemsCallback(item, last, operation) {
-            operation[operation.length] = item;
-        }
-        function assign(path, subject, value, overwrite) {
-            var CORE = LIBCORE, has = CORE.contains, array = CORE.array, object = CORE.object, apply = CORE.assign, parent = subject, numericRe = NUMERIC_RE;
-            var items, c, l, item, name, numeric, property, isArray, temp;
-            if (CORE.object(parent) || CORE.array(parent)) {
-                eachPath(path, getItemsCallback, items = []);
-                if (items.length) {
-                    name = items[0];
-                    items.splice(0, 1);
-                    for (c = -1, l = items.length; l--; ) {
-                        item = items[++c];
-                        numeric = numericRe.test(item);
-                        if (has(parent, name)) {
-                            property = parent[name];
-                            isArray = array(property);
-                            if (!isArray && !object(property)) {
-                                if (numeric) {
-                                    property = [ property ];
-                                } else {
-                                    temp = property;
-                                    property = {};
-                                    property[""] = temp;
-                                }
-                            } else if (isArray && !numeric) {
-                                property = apply({}, property);
-                                delete property.length;
-                            }
-                        } else {
-                            property = numeric ? [] : {};
-                        }
-                        parent = parent[name] = property;
-                        name = item;
-                    }
-                    if (overwrite !== true && has(parent, name)) {
-                        property = parent[name];
-                        if (array(property)) {
-                            parent = property;
-                            name = parent.length;
-                        } else {
-                            parent = parent[name] = [ property ];
-                            name = 1;
-                        }
-                    }
-                    parent[name] = value;
-                    parent = value = property = temp = null;
-                    return true;
-                }
-            }
-            return false;
-        }
-        function removeCallback(item, last, operation) {
-            var subject = operation[0];
-            var isLength;
-            if (!isAccessible(subject, item)) {
-                return false;
-            }
-            if (last) {
-                if (LIBCORE.array(subject)) {
-                    isLength = item === "length";
-                    subject.splice(isLength ? 0 : item.toString(10), isLength ? subject.length : 1);
-                } else {
-                    delete subject[item];
-                }
-                operation[1] = true;
-            } else {
-                operation[0] = subject[item];
-            }
-        }
-        function remove(path, object) {
-            var operation = [ object, false ];
-            eachPath(path, removeCallback, operation);
-            operation[0] = null;
-            return operation[1];
-        }
-        module.exports = {
-            find: find,
-            compare: LIBCORE.compare,
-            clone: clone,
-            each: eachPath,
-            assign: assign,
-            remove: remove
-        };
     } ]);
 });
 
