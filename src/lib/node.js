@@ -5,8 +5,9 @@ var LIBCORE = require('libcore'),
     EVENT = require("./event.js"),
     COMPONENT = require('./component.js'),
     ROLE_ATTRIBUTE = 'role',
+    ROOT_ROLE = 'app-root',
     REGISTERED_NODE_ATTRIBUTE = 'data-ui-node',
-    NODE_STATE_RE = /^(uninitialized|loading|interactive|detached)$/,
+    NODE_STATE_RE = /^(uninitialized|interactive|detached)$/,
     STAT_INVALID_DOM = 0,
     STAT_CAN_BIND = 1,
     STAT_BINDED = 2,
@@ -102,14 +103,19 @@ function bindDescendants(element, parent, includeCurrent) {
     
 }
 
-
 function onListenComponentListener(event, methodName, method, component) {
     /* jshint validthis:true */
     var node = this;
     
     function boundToEvent(event) {
-        return method.call(this, event, node);
+        var promises = event.promises;
+
+        if (!LIBCORE.array(promises)) {
+            promises = [];
+        }
+        return method.call(component, event, node, promises);
     }
+    
     // assign node
     component.node = node;
     component[methodName] = boundToEvent;
@@ -123,6 +129,34 @@ function onUnlistenComponentListener(event, methodName, method, component) {
     var node = this;
     LIBDOM.un(node.dom, event, method, component);
     node = null;
+}
+
+function initializeAndBindNodeDescendants(node) {
+    node.dispatch("initialize").
+        then(function () {
+            var current = node;
+            current.bindChildren();
+            if (!current.destroyed) {
+                current.dom.setAttribute(REGISTERED_NODE_ATTRIBUTE,
+                                        'interactive');
+            }
+            current = null;
+        });
+}
+
+function kickstart() {
+    var root = global.document.documentElement;
+    console.log('kick start!');
+    // add main role
+    switch (stat(root)) {
+    case STAT_ELEMENT:
+        // add main role
+        root.setAttribute('role', ROOT_ROLE);
+        
+    /* falls through */
+    case STAT_CAN_BIND:
+        bind(root, null);
+    }
 }
 
 function Node(dom, parent) {
@@ -168,7 +202,7 @@ function Node(dom, parent) {
     }
     
     // bind descendants
-    
+    initializeAndBindNodeDescendants(me);
 }
 
 Node.prototype = {
@@ -180,6 +214,49 @@ Node.prototype = {
     nextSibing: null,
     destroyed: true,
     constructor: Node,
+    dispatch: function (event, message) {
+        var me = this,
+            CORE = LIBCORE,
+            P = Promise;
+        var promises;
+        
+        if (CORE.string(event)) {
+            message = CORE.object(message) ?
+                            CORE.assign({}, message) : {};
+
+            message.promises = promises = [];
+            
+            event = LIBDOM.dispatch(me.dom, event, message);
+            
+            message.promises = null;
+            
+            if (promises.length) {
+                return P.all(promises).
+                            then(function () {
+                                promises.splice(0, promises.length);
+                                event.promises = promises = null;
+                                return event;
+                            });
+            }
+            event.promises = promises = null;
+            return P.resolve(event);
+        
+        }
+        
+        return P.reject("Invalid [event] parameter.");
+    },
+    
+    bindChildren: function () {
+        var me = this,
+            dom = me.dom;
+        if (!me.destroyed) {
+            bindDescendants(dom, me, false);
+        }
+        dom = null;
+        return me;
+    },
+    
+    
     destroy: function () {
         var me = this,
             each = EVENT.eachListener,
@@ -231,7 +308,17 @@ Node.prototype = {
             // clear!
             LIBCORE.clear(me);
         }
+        
+        return me;
     }
 };
 
 module.exports = EXPORTS;
+
+// register app-root component
+COMPONENT.register(ROOT_ROLE, require("./component/app-root.js"));
+LIBDOM.on(global.window, 'load', kickstart);
+
+
+
+

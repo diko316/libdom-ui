@@ -3908,165 +3908,226 @@
             return this;
         }());
     }, function(module, exports, __webpack_require__) {
-        "use strict";
-        var LIBCORE = __webpack_require__(5), LIBDOM = __webpack_require__(3), EVENT = __webpack_require__(45), COMPONENT = __webpack_require__(46), ROLE_ATTRIBUTE = "role", REGISTERED_NODE_ATTRIBUTE = "data-ui-node", NODE_STATE_RE = /^(uninitialized|loading|interactive|detached)$/, STAT_INVALID_DOM = 0, STAT_CAN_BIND = 1, STAT_BINDED = 2, STAT_ELEMENT = 3, EXPORTS = {
-            bind: bind
-        };
-        function empty() {}
-        function stat(dom) {
-            var type = dom.nodeType, isString = LIBCORE.string;
-            var roles, state;
-            if (type === 1) {
-                state = dom.getAttribute(REGISTERED_NODE_ATTRIBUTE);
-                if (isString(state) && NODE_STATE_RE.test(state)) {
-                    return STAT_BINDED;
-                }
-                roles = dom.getAttribute(ROLE_ATTRIBUTE);
-                if (isString(roles)) {
-                    roles = COMPONENT.validRoles(roles);
-                    if (roles) {
-                        return STAT_CAN_BIND;
+        (function(global) {
+            "use strict";
+            var LIBCORE = __webpack_require__(5), LIBDOM = __webpack_require__(3), EVENT = __webpack_require__(45), COMPONENT = __webpack_require__(46), ROLE_ATTRIBUTE = "role", ROOT_ROLE = "app-root", REGISTERED_NODE_ATTRIBUTE = "data-ui-node", NODE_STATE_RE = /^(uninitialized|interactive|detached)$/, STAT_INVALID_DOM = 0, STAT_CAN_BIND = 1, STAT_BINDED = 2, STAT_ELEMENT = 3, EXPORTS = {
+                bind: bind
+            };
+            function empty() {}
+            function stat(dom) {
+                var type = dom.nodeType, isString = LIBCORE.string;
+                var roles, state;
+                if (type === 1) {
+                    state = dom.getAttribute(REGISTERED_NODE_ATTRIBUTE);
+                    if (isString(state) && NODE_STATE_RE.test(state)) {
+                        return STAT_BINDED;
                     }
-                }
-                return STAT_ELEMENT;
-            }
-            return STAT_INVALID_DOM;
-        }
-        function bind(dom, parent) {
-            var Class = Node;
-            var node;
-            switch (stat(dom)) {
-              case STAT_CAN_BIND:
-                if (parent) {
-                    empty.prototype = parent;
-                    node = new empty();
-                    Class.call(node, dom, parent);
-                } else {
-                    node = new Class(dom, parent);
-                }
-                return node;
-
-              case STAT_BINDED:
-                return true;
-
-              default:
-                return false;
-            }
-        }
-        function bindDescendants(element, parent, includeCurrent) {
-            var depth = 0, dom = element, localBind = bind;
-            var current;
-            if (includeCurrent !== false) {
-                localBind(dom);
-            }
-            for (current = dom; current; ) {
-                if (!localBind(dom, parent)) {
-                    dom = current.firstChild;
-                    if (dom) {
-                        depth++;
-                        current = dom;
-                        continue;
-                    }
-                }
-                dom = current.nextSibling;
-                for (;!dom && depth-- && current; ) {
-                    current = current.parentNode;
-                    dom = current.nextSibling;
-                }
-                current = dom;
-            }
-            dom = current = null;
-        }
-        function onListenComponentListener(event, methodName, method, component) {
-            var node = this;
-            function boundToEvent(event) {
-                return method.call(this, event, node);
-            }
-            component.node = node;
-            component[methodName] = boundToEvent;
-            LIBDOM.on(node.dom, event, boundToEvent, component);
-            node = null;
-        }
-        function onUnlistenComponentListener(event, methodName, method, component) {
-            var node = this;
-            LIBDOM.un(node.dom, event, method, component);
-            node = null;
-        }
-        function Node(dom, parent) {
-            var me = this, component = COMPONENT, create = component.create, names = component.roles(dom), each = EVENT.eachListener, listen = onListenComponentListener, components = [], except = {};
-            var c, l, item;
-            me.destroyed = false;
-            me.dom = dom;
-            if (parent) {
-                me.parent = parent;
-                item = parent.lastChild;
-                if (item) {
-                    item.nextSibling = me;
-                    me.previousSibling = item;
-                } else {
-                    parent.firstChild = me;
-                }
-                parent.lastChild = me;
-            }
-            me.components = components;
-            dom.setAttribute(REGISTERED_NODE_ATTRIBUTE, "uninitialized");
-            for (c = -1, l = names.length; l--; ) {
-                create(names[++c], components, except);
-            }
-            for (c = -1, l = components.length; l--; ) {
-                each(components[++c], listen, me);
-            }
-        }
-        Node.prototype = {
-            dom: null,
-            parent: null,
-            firstChild: null,
-            lastChild: null,
-            previousSibling: null,
-            nextSibing: null,
-            destroyed: true,
-            constructor: Node,
-            destroy: function() {
-                var me = this, each = EVENT.eachListener, unlisten = onUnlistenComponentListener;
-                var components, l, parent, previous, next, node;
-                if (!me.destroyed) {
-                    delete me.destroyed;
-                    LIBDOM.dispatch(me.dom, "destroy", {
-                        bubbles: false
-                    });
-                    for (node = me.firstChild; node; node = node.nextSibling) {
-                        node.destroy();
-                    }
-                    components = me.components;
-                    if (components) {
-                        for (l = components.length; l--; ) {
-                            each(components[l], unlisten, me);
+                    roles = dom.getAttribute(ROLE_ATTRIBUTE);
+                    if (isString(roles)) {
+                        roles = COMPONENT.validRoles(roles);
+                        if (roles) {
+                            return STAT_CAN_BIND;
                         }
-                        components.length = 0;
                     }
-                    delete me.components;
-                    parent = me.parent;
+                    return STAT_ELEMENT;
+                }
+                return STAT_INVALID_DOM;
+            }
+            function bind(dom, parent) {
+                var Class = Node;
+                var node;
+                switch (stat(dom)) {
+                  case STAT_CAN_BIND:
                     if (parent) {
-                        previous = me.previousSibling;
-                        next = me.nextSibling;
-                        if (previous) {
-                            previous.nextSibling = next;
-                        }
-                        if (next) {
-                            next.previousSibling = previous;
-                        }
-                        if (parent.firstChild === me) {
-                            parent.firstChild = previous || next;
-                        }
-                        if (parent.lastChild === me) {
-                            parent.lastChild = next || previous;
-                        }
+                        empty.prototype = parent;
+                        node = new empty();
+                        Class.call(node, dom, parent);
+                    } else {
+                        node = new Class(dom, parent);
                     }
-                    LIBCORE.clear(me);
+                    return node;
+
+                  case STAT_BINDED:
+                    return true;
+
+                  default:
+                    return false;
                 }
             }
-        };
-        module.exports = EXPORTS;
+            function bindDescendants(element, parent, includeCurrent) {
+                var depth = 0, dom = element, localBind = bind;
+                var current;
+                if (includeCurrent !== false) {
+                    localBind(dom);
+                }
+                for (current = dom; current; ) {
+                    if (!localBind(dom, parent)) {
+                        dom = current.firstChild;
+                        if (dom) {
+                            depth++;
+                            current = dom;
+                            continue;
+                        }
+                    }
+                    dom = current.nextSibling;
+                    for (;!dom && depth-- && current; ) {
+                        current = current.parentNode;
+                        dom = current.nextSibling;
+                    }
+                    current = dom;
+                }
+                dom = current = null;
+            }
+            function onListenComponentListener(event, methodName, method, component) {
+                var node = this;
+                function boundToEvent(event) {
+                    var promises = event.promises;
+                    if (!LIBCORE.array(promises)) {
+                        promises = [];
+                    }
+                    return method.call(component, event, node, promises);
+                }
+                component.node = node;
+                component[methodName] = boundToEvent;
+                LIBDOM.on(node.dom, event, boundToEvent, component);
+                node = null;
+            }
+            function onUnlistenComponentListener(event, methodName, method, component) {
+                var node = this;
+                LIBDOM.un(node.dom, event, method, component);
+                node = null;
+            }
+            function initializeAndBindNodeDescendants(node) {
+                node.dispatch("initialize").then(function() {
+                    var current = node;
+                    current.bindChildren();
+                    if (!current.destroyed) {
+                        current.dom.setAttribute(REGISTERED_NODE_ATTRIBUTE, "interactive");
+                    }
+                    current = null;
+                });
+            }
+            function kickstart() {
+                var root = global.document.documentElement;
+                console.log("kick start!");
+                switch (stat(root)) {
+                  case STAT_ELEMENT:
+                    root.setAttribute("role", ROOT_ROLE);
+
+                  case STAT_CAN_BIND:
+                    bind(root, null);
+                }
+            }
+            function Node(dom, parent) {
+                var me = this, component = COMPONENT, create = component.create, names = component.roles(dom), each = EVENT.eachListener, listen = onListenComponentListener, components = [], except = {};
+                var c, l, item;
+                me.destroyed = false;
+                me.dom = dom;
+                if (parent) {
+                    me.parent = parent;
+                    item = parent.lastChild;
+                    if (item) {
+                        item.nextSibling = me;
+                        me.previousSibling = item;
+                    } else {
+                        parent.firstChild = me;
+                    }
+                    parent.lastChild = me;
+                }
+                me.components = components;
+                dom.setAttribute(REGISTERED_NODE_ATTRIBUTE, "uninitialized");
+                for (c = -1, l = names.length; l--; ) {
+                    create(names[++c], components, except);
+                }
+                for (c = -1, l = components.length; l--; ) {
+                    each(components[++c], listen, me);
+                }
+                initializeAndBindNodeDescendants(me);
+            }
+            Node.prototype = {
+                dom: null,
+                parent: null,
+                firstChild: null,
+                lastChild: null,
+                previousSibling: null,
+                nextSibing: null,
+                destroyed: true,
+                constructor: Node,
+                dispatch: function(event, message) {
+                    var me = this, CORE = LIBCORE, P = Promise;
+                    var promises;
+                    if (CORE.string(event)) {
+                        message = CORE.object(message) ? CORE.assign({}, message) : {};
+                        message.promises = promises = [];
+                        event = LIBDOM.dispatch(me.dom, event, message);
+                        message.promises = null;
+                        if (promises.length) {
+                            return P.all(promises).then(function() {
+                                promises.splice(0, promises.length);
+                                event.promises = promises = null;
+                                return event;
+                            });
+                        }
+                        event.promises = promises = null;
+                        return P.resolve(event);
+                    }
+                    return P.reject("Invalid [event] parameter.");
+                },
+                bindChildren: function() {
+                    var me = this, dom = me.dom;
+                    if (!me.destroyed) {
+                        bindDescendants(dom, me, false);
+                    }
+                    dom = null;
+                    return me;
+                },
+                destroy: function() {
+                    var me = this, each = EVENT.eachListener, unlisten = onUnlistenComponentListener;
+                    var components, l, parent, previous, next, node;
+                    if (!me.destroyed) {
+                        delete me.destroyed;
+                        LIBDOM.dispatch(me.dom, "destroy", {
+                            bubbles: false
+                        });
+                        for (node = me.firstChild; node; node = node.nextSibling) {
+                            node.destroy();
+                        }
+                        components = me.components;
+                        if (components) {
+                            for (l = components.length; l--; ) {
+                                each(components[l], unlisten, me);
+                            }
+                            components.length = 0;
+                        }
+                        delete me.components;
+                        parent = me.parent;
+                        if (parent) {
+                            previous = me.previousSibling;
+                            next = me.nextSibling;
+                            if (previous) {
+                                previous.nextSibling = next;
+                            }
+                            if (next) {
+                                next.previousSibling = previous;
+                            }
+                            if (parent.firstChild === me) {
+                                parent.firstChild = previous || next;
+                            }
+                            if (parent.lastChild === me) {
+                                parent.lastChild = next || previous;
+                            }
+                        }
+                        LIBCORE.clear(me);
+                    }
+                    return me;
+                }
+            };
+            module.exports = EXPORTS;
+            COMPONENT.register(ROOT_ROLE, __webpack_require__(48));
+            LIBDOM.on(global.window, "load", kickstart);
+        }).call(exports, function() {
+            return this;
+        }());
     }, function(module, exports, __webpack_require__) {
         "use strict";
         var LIBCORE = __webpack_require__(5), LISTENER_RE = /^on([a-zA-Z].*)$/;
@@ -4244,6 +4305,16 @@
             destroy: function() {}
         };
         module.exports = Base;
+    }, function(module, exports, __webpack_require__) {
+        "use strict";
+        var LIBCORE = __webpack_require__(5), Base = __webpack_require__(47);
+        function Main() {
+            Base.apply(this, arguments);
+        }
+        Main.prototype = LIBCORE.instantiate(Base, {
+            constructor: Main
+        });
+        module.exports = Main;
     } ]);
 });
 
