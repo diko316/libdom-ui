@@ -13,7 +13,8 @@ var LIBCORE = require('libcore'),
     STAT_BINDED = 2,
     STAT_ELEMENT = 3,
     EXPORTS = {
-        bind: bind
+        bind: bind,
+        destroy: destroy
     };
     
 function empty() {
@@ -61,8 +62,12 @@ function bind(dom, parent) {
             node = new Class(dom, parent);
         }
         return node;
-    case STAT_BINDED: return true;
-    default: return false;
+    
+    case STAT_BINDED:
+        return true;
+    
+    default:
+        return false;
     }
 }
 
@@ -77,6 +82,7 @@ function bindDescendants(element, parent, includeCurrent) {
         localBind(dom);
     }
     
+    dom = dom.firstChild;
     
     for (current = dom; current;) {
         // go down 1 level
@@ -103,6 +109,48 @@ function bindDescendants(element, parent, includeCurrent) {
     
 }
 
+
+function destroy(element) {
+    if (stat(element) === STAT_BINDED) {
+        LIBDOM.dispatch(element, 'node-destroy', { bubbles: false });
+        return true;
+    }
+    return false;
+}
+
+function destroyChildren(element) {
+    var depth = 0,
+        dom = element,
+        destroyNode = destroy;
+    var current;
+    
+    dom = dom.firstChild;
+    
+    for (current = dom; current;) {
+        
+        // go down 1 level
+        if (!destroyNode(dom)) {
+            dom = current.firstChild;
+            if (dom) {
+                depth++;
+                current = dom;
+                continue;
+            }
+        }
+        
+        // try next sibling or go up check next parent's next sibling
+        dom = current.nextSibling;
+        for (; !dom && depth-- && current;) {
+            current = current.parentNode;
+            dom = current.nextSibling;
+        }
+
+        current = dom;
+    }
+    
+    dom = current = null;
+}
+
 function onListenComponentListener(event, methodName, method, component) {
     /* jshint validthis:true */
     var node = this;
@@ -117,11 +165,10 @@ function onListenComponentListener(event, methodName, method, component) {
     }
     
     // assign node
-    component.node = node;
     component[methodName] = boundToEvent;
     
     LIBDOM.on(node.dom, event, boundToEvent, component);
-    node = null;
+
 }
 
 function onUnlistenComponentListener(event, methodName, method, component) {
@@ -145,18 +192,31 @@ function initializeAndBindNodeDescendants(node) {
 }
 
 function kickstart() {
-    var root = global.document.documentElement;
-    console.log('kick start!');
+    var G = global,
+        component = COMPONENT,
+        rootRole = ROOT_ROLE,
+        root = G.document.documentElement;
+        
+    // cleanup
+    LIBDOM.un(G.window, 'load', kickstart);
+    G = null;
+    
+    // register!
+    if (!component.registered(rootRole)) {
+        component.register(rootRole, require("./component/app-root.js"));
+    }
+    
     // add main role
     switch (stat(root)) {
     case STAT_ELEMENT:
         // add main role
-        root.setAttribute('role', ROOT_ROLE);
+        root.setAttribute('role', rootRole);
         
     /* falls through */
     case STAT_CAN_BIND:
         bind(root, null);
     }
+    
 }
 
 function Node(dom, parent) {
@@ -198,8 +258,13 @@ function Node(dom, parent) {
     }
     // listen
     for (c = -1, l = components.length; l--;) {
-        each(components[++c], listen, me);
+        item = components[++c];
+        item.node = me;
+        each(item, listen, me);
     }
+    item = null;
+    // listen to node destroy event
+    LIBDOM.on(dom, 'node-destroy', me.destroy, me);
     
     // bind descendants
     initializeAndBindNodeDescendants(me);
@@ -213,7 +278,28 @@ Node.prototype = {
     previousSibling: null,
     nextSibing: null,
     destroyed: true,
+    
     constructor: Node,
+
+    component: function (name) {
+        var me = this,
+            components = me.components;
+        var l, component;
+        
+        if (components && !me.destroyed) {
+            
+            for (l = components.length; l--;) {
+                component = components[l];
+                if (component.name === name) {
+                    return component;
+                }
+            }
+        }
+        
+        return null;
+    
+    },
+    
     dispatch: function (event, message) {
         var me = this,
             CORE = LIBCORE,
@@ -256,23 +342,36 @@ Node.prototype = {
         return me;
     },
     
+    destroyChildren: function () {
+        var me = this,
+            dom = me.dom;
+        if (!me.destroyed) {
+            destroyChildren(dom);
+        }
+        dom = null;
+        return me;
+    },
     
     destroy: function () {
         var me = this,
+            libdom = LIBDOM,
             each = EVENT.eachListener,
             unlisten = onUnlistenComponentListener;
-        var components, l, parent, previous, next, node;
+        var components, l, parent, previous, next, dom;
         
         if (!me.destroyed) {
             delete me.destroyed;
             
-            // call destroy
-            LIBDOM.dispatch(me.dom, 'destroy', { bubbles: false });
-            
-            // destroy child nodes
-            for (node = me.firstChild; node; node = node.nextSibling) {
-                node.destroy();
+            dom = me.dom;
+            if (dom) {
+                libdom.un(dom, 'node-destroy', me.destroy, me);
             }
+            
+            // destroy descendants
+            me.destroyChildren();
+            
+            // call destroy
+            libdom.dispatch(me.dom, 'destroy', { bubbles: false });
             
             // unlisten
             components = me.components;
@@ -306,8 +405,10 @@ Node.prototype = {
             }
             
             // clear!
+            dom = null;
             LIBCORE.clear(me);
         }
+        
         
         return me;
     }
@@ -316,7 +417,6 @@ Node.prototype = {
 module.exports = EXPORTS;
 
 // register app-root component
-COMPONENT.register(ROOT_ROLE, require("./component/app-root.js"));
 LIBDOM.on(global.window, 'load', kickstart);
 
 

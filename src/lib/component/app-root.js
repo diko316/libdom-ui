@@ -8,7 +8,7 @@ function Main() {
 }
 
 Main.prototype = LIBCORE.instantiate(Base, {
-    
+    requires: ["lib-dom"],
     constructor: Main
     
 });

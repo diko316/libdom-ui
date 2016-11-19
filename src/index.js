@@ -2,6 +2,8 @@
 
 var DOM = require("libdom"),
     CORE = require("libcore"),
+    COMPONENTS = require("./lib/component.js"),
+    register = COMPONENTS.register,
     rehash = CORE.rehash,
     EXPORTS = {};
 
@@ -31,3 +33,11 @@ if (DOM.env.browser) {
 }
 
 module.exports = EXPORTS['default'] = EXPORTS;
+
+
+/**
+ * Register base components
+ */
+
+register("lib-dom", require("./lib/component/dom.js"));
+register("lib-template", require("./lib/component/template.js"));

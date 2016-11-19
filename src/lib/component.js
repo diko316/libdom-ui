@@ -11,9 +11,13 @@ var LIBCORE = require("libcore"),
         register: register,
         roles: getRoles,
         validRoles: getRegisteredRoles,
-        create: instantiate
+        create: instantiate,
+        registered: isRegistered
     };
 
+function isRegistered(str) {
+    return LIBCORE.string(str) && COMPONENTS.exists(str);
+}
 
 function getRegisteredRoles(str) {
     var list = COMPONENTS,
@@ -63,6 +67,8 @@ function register(name, config) {
     // validate method
     if (!isObject) {
         Prototype = config.prototype;
+        Prototype.name = name;
+        
         if (!(Prototype instanceof Base) && Prototype !== Base.prototype) {
             throw new Error(
                 "[config] Class must be a subclass of Base Component.");
@@ -186,6 +192,7 @@ function createClass(name, createList) {
         requires = BasePrototype.requires.slice(0);
     }
     
+    Prototype.name = name;
     Prototype.requires = Base.prototype.requires.concat(requires);
         
     // update definition
@@ -207,12 +214,4 @@ module.exports = EXPORTS.chain = EXPORTS;
 
 // register base class
 register(BASE_CLASS, BASE_COMPONENT);
-//
-//COMPONENTS.set(BASE_CLASS, {
-//    name: BASE_CLASS,
-//    created: true,
-//    Class: require("./component/base.js"),
-//    requires: [],
-//    properties: {}
-//});
-//
+
