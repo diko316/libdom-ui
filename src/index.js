@@ -1,11 +1,17 @@
 'use strict';
 
-var DOM = require("libdom"),
-    CORE = require("libcore"),
+var CORE = require("libcore"),
     COMPONENTS = require("./lib/component.js"),
     register = COMPONENTS.register,
     rehash = CORE.rehash,
     EXPORTS = {};
+var DOM;
+
+if (!global.libdom) {
+    throw new Error("libdom package not found. Unable to load libdom-ui.");
+}
+
+DOM = require("libdom");
 
 if (DOM.env.browser) {
     DOM.ui = EXPORTS;
@@ -33,7 +39,7 @@ if (DOM.env.browser) {
 }
 
 module.exports = EXPORTS['default'] = EXPORTS;
-
+DOM.ui = EXPORTS;
 
 /**
  * Register base components

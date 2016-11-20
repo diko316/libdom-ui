@@ -52,6 +52,6 @@
   "dependencies": {
     "libcore": "0.2.7",
     "libdom": "0.3.7",
-    "libdom-http": "0.0.5"
+    "libdom-http": "0.0.7"
   }
 }

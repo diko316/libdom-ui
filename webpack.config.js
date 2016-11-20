@@ -11,6 +11,7 @@ var PATH = require('path'),
     sourcePath = PATH.join(buildDirectory, 'src'),
     hasOwn = Object.prototype.hasOwnProperty,
     entry = {},
+    externals = {},
     DISABLE_HOT_IE = true,
     //DISABLE_HOT_IE = false,
     plugins = [
@@ -39,6 +40,14 @@ case "production":
                 comments: false,
                 sourceMap: false
             }));
+    externals = {
+        "libdom": {
+            umd: "libdom"
+        },
+        "libdom-http": {
+            umd: "libdom-http"
+        }
+    };
     break;
 
 case "compressed":
@@ -54,6 +63,14 @@ case "compressed":
                 new webpack.optimize.UglifyJsPlugin({
                     
                 }));
+    externals = {
+        "libdom": {
+            umd: "libdom"
+        },
+        "libdom-http": {
+            umd: "libdom-http"
+        }
+    };
     break;
 
 default:
@@ -96,6 +113,8 @@ module.exports = {
     },
 
     devTool: 'eval',
+    
+    externals: externals,
 
     plugins: plugins,
 
