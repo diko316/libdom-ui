@@ -3933,12 +3933,27 @@
         }
         module.exports = EXPORTS.chain = EXPORTS;
         register(BASE_CLASS, BASE_COMPONENT);
-    }, function(module, exports) {
+    }, function(module, exports, __webpack_require__) {
         "use strict";
+        var LIBCORE = __webpack_require__(5);
         function Base() {}
         Base.prototype = {
             requires: [],
             constructor: Base,
+            set: function(path, value, overwrite) {
+                var me = this, node = me.node;
+                if (node) {
+                    LIBCORE.jsonSet(path, node.data, value, overwrite !== false);
+                }
+                return me;
+            },
+            unset: function(path) {
+                var me = this, node = me.node;
+                if (node) {
+                    LIBCORE.jsonUnset(path, node.data);
+                }
+                return me;
+            },
             component: function(component) {
                 var node = this.node;
                 return node ? node.component(component) : null;
@@ -3959,8 +3974,7 @@
                     return node.dispatch(event, message);
                 }
                 return Promise.reject("Node control is currently not available");
-            },
-            destroy: function() {}
+            }
         };
         module.exports = Base;
     }, function(module, exports) {}, , , , function(module, exports, __webpack_require__) {
@@ -4180,13 +4194,25 @@
             function onListenComponentListener(event, methodName, method, component) {
                 var node = this;
                 function boundToEvent(event) {
-                    var promises = event.promises;
+                    var promises = event.promises, notNodeEvent = !event.isNodeEvent;
+                    var result;
                     if (!LIBCORE.array(promises)) {
                         promises = [];
                     }
-                    return method.call(component, event, node, promises);
+                    if (notNodeEvent || !event.monitored) {
+                        if (!notNodeEvent) {
+                            event.monitored = true;
+                        }
+                        node.onBeforeEvent(event);
+                    }
+                    result = method.call(component, event, node, promises);
+                    if (notNodeEvent) {
+                        asyncAfterNodeEvent(node, event, promises.length ? Promise.all(promises) : null);
+                    }
+                    return result;
                 }
                 component[methodName] = boundToEvent;
+                node.listened[event] = true;
                 LIBDOM.on(node.dom, event, boundToEvent, component);
             }
             function onUnlistenComponentListener(event, methodName, method, component) {
@@ -4219,11 +4245,27 @@
                     bind(root, null);
                 }
             }
+            function asyncAfterNodeEvent(node, event, promise) {
+                var P = Promise;
+                function onAfterNodeEvent() {
+                    if (!node.destroyed) {
+                        node.onAfterEvent(event);
+                    }
+                    return event;
+                }
+                function onReject(e) {
+                    onAfterNodeEvent();
+                    return P.reject(e);
+                }
+                return (promise || Promise.resolve(event)).then(onAfterNodeEvent, onReject);
+            }
             function Node(dom, parent) {
                 var me = this, component = COMPONENT, create = component.create, names = component.roles(dom), each = EVENT.eachListener, listen = onListenComponentListener, components = [], except = {};
                 var c, l, item;
                 me.destroyed = false;
                 me.dom = dom;
+                me.data = {};
+                me.listened = {};
                 if (parent) {
                     me.parent = parent;
                     item = parent.lastChild;
@@ -4251,11 +4293,15 @@
             }
             Node.prototype = {
                 dom: null,
+                stateChangeEvent: "state-change",
+                pendingEvents: 0,
                 parent: null,
                 firstChild: null,
                 lastChild: null,
                 previousSibling: null,
                 nextSibing: null,
+                data: null,
+                cache: null,
                 destroyed: true,
                 constructor: Node,
                 component: function(name) {
@@ -4271,23 +4317,45 @@
                     }
                     return null;
                 },
+                onBeforeEvent: function(event) {
+                    var me = this;
+                    if (!me.destroyed && event.type !== me.stateChangeEvent && 0 === me.pendingEvents++) {
+                        me.cache = LIBCORE.clone(me.data, true);
+                    }
+                },
+                onAfterEvent: function(event) {
+                    var me = this, data = me.data, cache = me.cache, stateChangeEvent = me.stateChangeEvent;
+                    if (!me.destroyed && event.type !== stateChangeEvent && 0 === --me.pendingEvents && !LIBCORE.compare(data, cache)) {
+                        delete me.cache;
+                        me.dispatch(stateChangeEvent, {
+                            bubbles: false,
+                            data: data,
+                            cached: cache
+                        });
+                        cache = null;
+                    }
+                },
                 dispatch: function(event, message) {
-                    var me = this, CORE = LIBCORE, P = Promise;
-                    var promises;
+                    var me = this, CORE = LIBCORE, P = Promise, async = asyncAfterNodeEvent;
+                    var promises, listened, promise;
                     if (CORE.string(event)) {
+                        listened = CORE.contains(me.listened, event);
                         message = CORE.object(message) ? CORE.assign({}, message) : {};
                         message.promises = promises = [];
+                        message.isNodeEvent = true;
                         event = LIBDOM.dispatch(me.dom, event, message);
                         message.promises = null;
                         if (promises.length) {
-                            return P.all(promises).then(function() {
+                            promise = P.all(promises).then(function() {
                                 promises.splice(0, promises.length);
                                 event.promises = promises = null;
                                 return event;
                             });
+                        } else {
+                            event.promises = promises = null;
+                            promise = P.resolve(event);
                         }
-                        event.promises = promises = null;
-                        return P.resolve(event);
+                        return listened ? async(me, event, promise) : promise;
                     }
                     return P.reject("Invalid [event] parameter.");
                 },
@@ -4301,7 +4369,7 @@
                 },
                 destroyChildren: function() {
                     var me = this, dom = me.dom;
-                    if (!me.destroyed) {
+                    if (dom) {
                         destroyChildren(dom);
                     }
                     dom = null;
@@ -4317,9 +4385,11 @@
                             libdom.un(dom, "node-destroy", me.destroy, me);
                         }
                         me.destroyChildren();
-                        libdom.dispatch(me.dom, "destroy", {
-                            bubbles: false
-                        });
+                        if (dom) {
+                            libdom.dispatch(me.dom, "destroy", {
+                                bubbles: false
+                            });
+                        }
                         components = me.components;
                         if (components) {
                             for (l = components.length; l--; ) {
@@ -4469,15 +4539,16 @@
         module.exports = Dom;
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var LIBCORE = __webpack_require__(5), NODE = __webpack_require__(46), TEMPLATE = __webpack_require__(51), BASE = __webpack_require__(40);
+        var LIBCORE = __webpack_require__(5), TEMPLATE = __webpack_require__(51), BASE = __webpack_require__(40);
         function Template() {}
         Template.prototype = LIBCORE.instantiate(BASE, {
             requires: [ "lib-dom" ],
-            constructor: Template,
             templateAttr: "data-template",
+            constructor: Template,
             onInitialize: function() {
                 var me = this, promises = arguments[2], template = me.component("lib-dom").attribute(me.templateAttr);
                 if (LIBCORE.string(template)) {
+                    me.set("template.url", template);
                     promises[promises.length] = TEMPLATE.get(template).then(function(data) {
                         me.applyTemplate(data);
                     });
@@ -4486,9 +4557,12 @@
             applyTemplate: function(data) {
                 var dom = this.component("lib-dom").dom();
                 if (dom) {
-                    NODE.destroyChildren(dom);
+                    this.node.destroyChildren(dom);
                     dom.innerHTML = data;
                 }
+            },
+            onStateChange: function(event) {
+                console.log("state change! ", event.data);
             }
         });
         module.exports = Template;

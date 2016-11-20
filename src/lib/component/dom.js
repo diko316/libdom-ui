@@ -76,6 +76,7 @@ Dom.prototype = LIBCORE.instantiate(BASE, {
         
         return dom;
     }
+    
 });
 
 module.exports = Dom;

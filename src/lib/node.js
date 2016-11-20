@@ -156,16 +156,36 @@ function onListenComponentListener(event, methodName, method, component) {
     var node = this;
     
     function boundToEvent(event) {
-        var promises = event.promises;
+        var promises = event.promises,
+            notNodeEvent = !event.isNodeEvent;
+        var result;
 
         if (!LIBCORE.array(promises)) {
             promises = [];
         }
-        return method.call(component, event, node, promises);
+
+        if (notNodeEvent || !event.monitored) {
+            if (!notNodeEvent) {
+                event.monitored = true;
+            }
+            node.onBeforeEvent(event);
+        }
+        
+        result = method.call(component, event, node, promises);
+        
+        if (notNodeEvent) {
+            asyncAfterNodeEvent(node,
+                            event,
+                            promises.length ?
+                                Promise.all(promises) : null);
+        }
+        
+        return result;
     }
     
     // assign node
     component[methodName] = boundToEvent;
+    node.listened[event] = true;
     
     LIBDOM.on(node.dom, event, boundToEvent, component);
 
@@ -219,6 +239,25 @@ function kickstart() {
     
 }
 
+function asyncAfterNodeEvent(node, event, promise) {
+    var P = Promise;
+    function onAfterNodeEvent() {
+        if (!node.destroyed) {
+            node.onAfterEvent(event);
+        }
+        return event;
+    }
+    function onReject(e) {
+        onAfterNodeEvent();
+        return P.reject(e);
+    }
+    
+    return (promise || Promise.resolve(event)).
+                then(onAfterNodeEvent, onReject);
+}
+
+
+
 function Node(dom, parent) {
     var me = this,
         component = COMPONENT,
@@ -232,6 +271,8 @@ function Node(dom, parent) {
     
     me.destroyed = false;
     me.dom = dom;
+    me.data = {};
+    me.listened = {};
     
     // create dom-like properties
     if (parent) {
@@ -256,13 +297,16 @@ function Node(dom, parent) {
     for (c = -1, l = names.length; l--;) {
         create(names[++c], components, except);
     }
+    
     // listen
     for (c = -1, l = components.length; l--;) {
         item = components[++c];
         item.node = me;
         each(item, listen, me);
     }
+    
     item = null;
+    
     // listen to node destroy event
     LIBDOM.on(dom, 'node-destroy', me.destroy, me);
     
@@ -272,11 +316,15 @@ function Node(dom, parent) {
 
 Node.prototype = {
     dom: null,
+    stateChangeEvent: 'state-change',
+    pendingEvents: 0,
     parent: null,
     firstChild: null,
     lastChild: null,
     previousSibling: null,
     nextSibing: null,
+    data: null,
+    cache: null,
     destroyed: true,
     
     constructor: Node,
@@ -300,32 +348,74 @@ Node.prototype = {
     
     },
     
+    onBeforeEvent: function (event) {
+        var me = this;
+
+        if (!me.destroyed && event.type !== me.stateChangeEvent &&
+            0 === me.pendingEvents++) {
+            
+            // save current data for later comparison
+            //      in detecting state change
+            me.cache = LIBCORE.clone(me.data, true);
+            
+        }
+        
+    },
+    
+    onAfterEvent: function (event) {
+        var me = this,
+            data = me.data,
+            cache = me.cache,
+            stateChangeEvent = me.stateChangeEvent;
+        
+        
+        // check if there are changes in state data
+        if (!me.destroyed && event.type !== stateChangeEvent &&
+            0 === --me.pendingEvents && !LIBCORE.compare(data, cache)) {
+
+            delete me.cache;
+            me.dispatch(stateChangeEvent, {
+                                            bubbles: false,
+                                            data: data,
+                                            cached: cache
+                                        });
+            cache = null;
+        }
+    },
+    
     dispatch: function (event, message) {
         var me = this,
             CORE = LIBCORE,
-            P = Promise;
-        var promises;
+            P = Promise,
+            async = asyncAfterNodeEvent;
+        var promises, listened, promise;
         
         if (CORE.string(event)) {
+            listened = CORE.contains(me.listened, event);
             message = CORE.object(message) ?
                             CORE.assign({}, message) : {};
-
+            
             message.promises = promises = [];
+            message.isNodeEvent = true;
             
             event = LIBDOM.dispatch(me.dom, event, message);
             
             message.promises = null;
             
             if (promises.length) {
-                return P.all(promises).
+                promise = P.all(promises).
                             then(function () {
                                 promises.splice(0, promises.length);
                                 event.promises = promises = null;
                                 return event;
                             });
             }
-            event.promises = promises = null;
-            return P.resolve(event);
+            else {
+                event.promises = promises = null;
+                promise = P.resolve(event);
+            }
+            
+            return listened ? async(me, event, promise) : promise;
         
         }
         
@@ -345,7 +435,8 @@ Node.prototype = {
     destroyChildren: function () {
         var me = this,
             dom = me.dom;
-        if (!me.destroyed) {
+            
+        if (dom) {
             destroyChildren(dom);
         }
         dom = null;
@@ -371,7 +462,9 @@ Node.prototype = {
             me.destroyChildren();
             
             // call destroy
-            libdom.dispatch(me.dom, 'destroy', { bubbles: false });
+            if (dom) {
+                libdom.dispatch(me.dom, 'destroy', { bubbles: false });
+            }
             
             // unlisten
             components = me.components;

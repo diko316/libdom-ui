@@ -1,5 +1,7 @@
 'use strict';
 
+var LIBCORE = require("libcore");
+
 function Base() {
     
 }
@@ -7,6 +9,22 @@ function Base() {
 Base.prototype = {
     requires: [],
     constructor: Base,
+    set: function (path, value, overwrite) {
+        var me = this,
+            node = me.node;
+        if (node) {
+            LIBCORE.jsonSet(path, node.data, value, overwrite !== false);
+        }
+        return me;
+    },
+    unset: function (path) {
+        var me = this,
+            node = me.node;
+        if (node) {
+            LIBCORE.jsonUnset(path, node.data);
+        }
+        return me;
+    },
     component: function (component) {
         var node = this.node;
         return node ? node.component(component) : null;
@@ -27,8 +45,6 @@ Base.prototype = {
             return node.dispatch(event, message);
         }
         return Promise.reject('Node control is currently not available');
-    },
-    destroy: function () {
     }
 };
 
