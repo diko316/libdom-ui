@@ -1717,12 +1717,12 @@
                 }
                 return false;
             }
-            function destroyChildren(element) {
-                var depth = 0, dom = element, destroyNode = destroy;
+            function eachChildren(element, callback, arg1, arg2, arg3, arg4, arg5) {
+                var depth = 0, dom = element, bindedStat = STAT_BINDED, getStat = stat;
                 var current;
                 dom = dom.firstChild;
                 for (current = dom; current; ) {
-                    if (!destroyNode(dom)) {
+                    if (getStat(element) !== bindedStat || callback(element, arg1, arg2, arg3, arg4, arg5) === false) {
                         dom = current.firstChild;
                         if (dom) {
                             depth++;
@@ -1738,6 +1738,9 @@
                     current = dom;
                 }
                 dom = current = null;
+            }
+            function destroyChildren(element) {
+                eachChildren(element, destroy);
             }
             function onListenComponentListener(event, methodName, method, component) {
                 var node = this;
@@ -1842,6 +1845,7 @@
             Node.prototype = {
                 dom: null,
                 stateChangeEvent: "state-change",
+                parentStateChangeEvent: "parent-state-change",
                 pendingEvents: 0,
                 parent: null,
                 firstChild: null,
@@ -1872,14 +1876,19 @@
                     }
                 },
                 onAfterEvent: function(event) {
-                    var me = this, data = me.data, cache = me.cache, stateChangeEvent = me.stateChangeEvent;
+                    var me = this, data = me.data, cache = me.cache, stateChangeEvent = me.stateChangeEvent, parentStateChangeEvent = me.parentStateChangeEvent;
+                    var node, message;
                     if (!me.destroyed && event.type !== stateChangeEvent && 0 === --me.pendingEvents && !LIBCORE.compare(data, cache)) {
                         delete me.cache;
-                        me.dispatch(stateChangeEvent, {
+                        message = {
                             bubbles: false,
                             data: data,
                             cached: cache
-                        });
+                        };
+                        me.dispatch(stateChangeEvent, message);
+                        for (node = me.firstChild; node; node = node.nextSibling) {
+                            me.dispatch(parentStateChangeEvent, message);
+                        }
                         cache = null;
                     }
                 },

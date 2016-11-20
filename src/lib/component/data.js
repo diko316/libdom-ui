@@ -10,7 +10,22 @@ function Data() {
 }
 
 Data.prototype = LIBCORE.instantiate(BASE, {
-    constructor: Data
+    constructor: Data,
+    dataAttr: 'data-listen',
+    
+    importState: function () {
+        
+    },
+    
+    onInitialize: function (node) {
+        var me = this,
+            data = me.component("lib-dom").attribute(me.dataAttr);
+    },
+    
+    onParentStateChange: function (node) {
+        
+    }
+    
 });
 
 

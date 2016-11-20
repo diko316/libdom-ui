@@ -118,18 +118,20 @@ function destroy(element) {
     return false;
 }
 
-function destroyChildren(element) {
+function eachChildren(element, callback, arg1, arg2, arg3, arg4, arg5) {
     var depth = 0,
         dom = element,
-        destroyNode = destroy;
+        bindedStat = STAT_BINDED,
+        getStat = stat;
     var current;
     
     dom = dom.firstChild;
     
     for (current = dom; current;) {
         
-        // go down 1 level
-        if (!destroyNode(dom)) {
+        // go down 1 level if not binded or not skipped (return false)
+        if (getStat(element) !== bindedStat ||
+            callback(element, arg1, arg2, arg3, arg4, arg5) === false) {
             dom = current.firstChild;
             if (dom) {
                 depth++;
@@ -149,6 +151,13 @@ function destroyChildren(element) {
     }
     
     dom = current = null;
+}
+
+
+function destroyChildren(element) {
+    
+    eachChildren(element, destroy);
+    
 }
 
 function onListenComponentListener(event, methodName, method, component) {
@@ -317,6 +326,7 @@ function Node(dom, parent) {
 Node.prototype = {
     dom: null,
     stateChangeEvent: 'state-change',
+    parentStateChangeEvent: 'parent-state-change',
     pendingEvents: 0,
     parent: null,
     firstChild: null,
@@ -366,19 +376,26 @@ Node.prototype = {
         var me = this,
             data = me.data,
             cache = me.cache,
-            stateChangeEvent = me.stateChangeEvent;
-        
+            stateChangeEvent = me.stateChangeEvent,
+            parentStateChangeEvent = me.parentStateChangeEvent;
+        var node, message;
         
         // check if there are changes in state data
         if (!me.destroyed && event.type !== stateChangeEvent &&
             0 === --me.pendingEvents && !LIBCORE.compare(data, cache)) {
 
             delete me.cache;
-            me.dispatch(stateChangeEvent, {
-                                            bubbles: false,
-                                            data: data,
-                                            cached: cache
-                                        });
+            message = {
+                    bubbles: false,
+                    data: data,
+                    cached: cache
+                };
+            me.dispatch(stateChangeEvent, message);
+            // notify children
+            for (node = me.firstChild; node; node = node.nextSibling) {
+                me.dispatch(parentStateChangeEvent, message);
+            }
+            
             cache = null;
         }
     },
