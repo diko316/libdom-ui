@@ -46,4 +46,5 @@ DOM.ui = EXPORTS;
  */
 
 register("lib-dom", require("./lib/component/dom.js"));
+register("lib-data", require("./lib/component/data.js"));
 register("lib-template", require("./lib/component/template.js"));

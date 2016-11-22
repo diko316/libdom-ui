@@ -1,6 +1,6 @@
 (function webpackUniversalModuleDefinition(root, factory) {
     if (typeof exports === "object" && typeof module === "object") module.exports = factory(require(undefined), require(undefined)); else if (typeof define === "function" && define.amd) define("libdom-ui", [ ,  ], factory); else if (typeof exports === "object") exports["libdom-ui"] = factory(require(undefined), require(undefined)); else root["libdom-ui"] = factory(root[undefined], root[undefined]);
-})(this, function(__WEBPACK_EXTERNAL_MODULE_16__, __WEBPACK_EXTERNAL_MODULE_29__) {
+})(this, function(__WEBPACK_EXTERNAL_MODULE_16__, __WEBPACK_EXTERNAL_MODULE_30__) {
     return function(modules) {
         var installedModules = {};
         function __webpack_require__(moduleId) {
@@ -45,7 +45,8 @@
             module.exports = EXPORTS["default"] = EXPORTS;
             DOM.ui = EXPORTS;
             register("lib-dom", __webpack_require__(26));
-            register("lib-template", __webpack_require__(27));
+            register("lib-data", __webpack_require__(27));
+            register("lib-template", __webpack_require__(28));
         }).call(exports, function() {
             return this;
         }());
@@ -1971,6 +1972,7 @@
                             if (parent.lastChild === me) {
                                 parent.lastChild = next || previous;
                             }
+                            delete me.parent;
                         }
                         dom = null;
                         LIBCORE.clear(me);
@@ -2096,7 +2098,67 @@
         module.exports = Dom;
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var LIBCORE = __webpack_require__(3), TEMPLATE = __webpack_require__(28), BASE = __webpack_require__(17);
+        var LIBCORE = __webpack_require__(3), BASE = __webpack_require__(17), SPLIT_RE = /[ \r\n\t\s]+/, PAIR_RE = /^([^\=]+)\=([^\=]+)$/;
+        function Data() {}
+        Data.prototype = LIBCORE.instantiate(BASE, {
+            names: null,
+            constructor: Data,
+            dataAttr: "data-listen",
+            importState: function() {
+                var CORE = LIBCORE, isObject = CORE.object, find = CORE.jsonFind, me = this, names = me.names, node = me.node, stateData = node && node.data;
+                var c, l, item, property, access, parent, parentData, clear;
+                if (isObject(stateData) && CORE.array(names)) {
+                    parent = node.parent;
+                    parentData = parent ? parent.data : null;
+                    clear = !isObject(parentData);
+                    for (c = -1, l = names.length; l--; ) {
+                        item = names[++c];
+                        access = item[0];
+                        if (!clear) {
+                            property = find(item[1]);
+                            if (typeof property !== "undefined") {
+                                stateData[access] = property;
+                                continue;
+                            }
+                        }
+                        delete stateData[access];
+                    }
+                    names = item = null;
+                }
+                return me;
+            },
+            clearState: function() {
+                var CORE = LIBCORE, me = this, node = me.node, stateData = node && node.data, names = me.names;
+                var l;
+                if (CORE.object(stateData) && CORE.array(names)) {
+                    for (l = names.length; l--; ) {
+                        delete stateData[names[l]];
+                    }
+                }
+                return me;
+            },
+            onInitialize: function() {
+                var me = this, CORE = LIBCORE, pairRe = PAIR_RE, access = me.component("lib-dom").attribute(me.dataAttr), names = [], nl = 0;
+                var c, l, item;
+                if (CORE.string(access)) {
+                    access = access.split(SPLIT_RE);
+                    for (c = -1, l = access.length; l--; ) {
+                        item = access[++c].match(pairRe);
+                        if (item) {
+                            names[nl++] = [ item[1], item[2] ];
+                        }
+                    }
+                }
+                this.names = names;
+            },
+            onParentStateChange: function() {
+                this.importState();
+            }
+        });
+        module.exports = Data;
+    }, function(module, exports, __webpack_require__) {
+        "use strict";
+        var LIBCORE = __webpack_require__(3), TEMPLATE = __webpack_require__(29), BASE = __webpack_require__(17);
         function Template() {}
         Template.prototype = LIBCORE.instantiate(BASE, {
             requires: [ "lib-dom" ],
@@ -2125,7 +2187,7 @@
         module.exports = Template;
     }, function(module, exports, __webpack_require__) {
         "use strict";
-        var LIBCORE = __webpack_require__(3), HTTP = __webpack_require__(29), TEMPLATES = LIBCORE.createRegistry(), EXPORTS = {
+        var LIBCORE = __webpack_require__(3), HTTP = __webpack_require__(30), TEMPLATES = LIBCORE.createRegistry(), EXPORTS = {
             add: add,
             get: get
         };
@@ -2178,7 +2240,7 @@
         }
         module.exports = EXPORTS;
     }, function(module, exports) {
-        module.exports = __WEBPACK_EXTERNAL_MODULE_29__;
+        module.exports = __WEBPACK_EXTERNAL_MODULE_30__;
     } ]);
 });
 

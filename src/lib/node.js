@@ -512,6 +512,7 @@ Node.prototype = {
                 if (parent.lastChild === me) {
                     parent.lastChild = next || previous;
                 }
+                delete me.parent;
             }
             
             // clear!
