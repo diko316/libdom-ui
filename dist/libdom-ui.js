@@ -1687,7 +1687,7 @@
             function bindDescendants(element, parent, includeCurrent) {
                 var depth = 0, dom = element, localBind = bind;
                 var current;
-                if (includeCurrent !== false) {
+                if (includeCurrent === true) {
                     localBind(dom);
                 }
                 dom = dom.firstChild;
@@ -1723,7 +1723,7 @@
                 var current;
                 dom = dom.firstChild;
                 for (current = dom; current; ) {
-                    if (getStat(element) !== bindedStat || callback(element, arg1, arg2, arg3, arg4, arg5) === false) {
+                    if (getStat(current) !== bindedStat || callback(current, arg1, arg2, arg3, arg4, arg5) === false) {
                         dom = current.firstChild;
                         if (dom) {
                             depth++;
@@ -1746,22 +1746,8 @@
             function onListenComponentListener(event, methodName, method, component) {
                 var node = this;
                 function boundToEvent(event) {
-                    var promises = event.promises, notNodeEvent = !event.isNodeEvent;
-                    var result;
-                    if (!LIBCORE.array(promises)) {
-                        promises = [];
-                    }
-                    if (notNodeEvent || !event.monitored) {
-                        if (!notNodeEvent) {
-                            event.monitored = true;
-                        }
-                        node.onBeforeEvent(event);
-                    }
-                    result = method.call(component, event, node, promises);
-                    if (notNodeEvent) {
-                        asyncAfterNodeEvent(node, event, promises.length ? Promise.all(promises) : null);
-                    }
-                    return result;
+                    decorateEvent(node, event);
+                    return method.call(component, event, node, []);
                 }
                 component[methodName] = boundToEvent;
                 node.listened[event] = true;
@@ -1811,6 +1797,33 @@
                 }
                 return (promise || Promise.resolve(event)).then(onAfterNodeEvent, onReject);
             }
+            function decorateEvent(node, event) {
+                if (!LIBCORE.method(event.until)) {
+                    event.until = untilResolved(node);
+                }
+            }
+            function untilResolved(node) {
+                function resolveOrNot() {
+                    var currentNode = node, events = --currentNode.runningTasks;
+                    if (!events && !currentNode.destroyed) {
+                        currentNode.onAfterProcesses();
+                    }
+                    currentNode = null;
+                }
+                function runTask(data) {
+                    var CORE = LIBCORE, P = Promise, currentNode = node;
+                    var running;
+                    if (!currentNode.destroyed) {
+                        running = currentNode.runningTasks++;
+                        if (!running) {
+                            currentNode.onBeforeProcesses();
+                        }
+                        currentNode = null;
+                        (CORE.method(data) ? new P(data) : P.resolve(data)).then(resolveOrNot, resolveOrNot);
+                    }
+                }
+                return runTask;
+            }
             function Node(dom, parent) {
                 var me = this, component = COMPONENT, create = component.create, names = component.roles(dom), each = EVENT.eachListener, listen = onListenComponentListener, components = [], except = {};
                 var c, l, item;
@@ -1845,6 +1858,7 @@
             }
             Node.prototype = {
                 dom: null,
+                runningTasks: 0,
                 stateChangeEvent: "state-change",
                 parentStateChangeEvent: "parent-state-change",
                 pendingEvents: 0,
@@ -1869,6 +1883,24 @@
                         }
                     }
                     return null;
+                },
+                onBeforeProcesses: function() {
+                    var me = this;
+                    if (!me.destroyed) {
+                        me.cache = LIBCORE.clone(me.data, true);
+                    }
+                },
+                onAfterProcesses: function() {
+                    var me = this, data = me.data, cache = me.cache;
+                    console.log("state change! ", !LIBCORE.compare(data, cache), data, cache);
+                    if (!me.destroyed && !LIBCORE.compare(data, cache)) {
+                        me.dispatch(me.stateChangeEvent, {
+                            bubbles: false,
+                            data: data,
+                            cached: cache
+                        });
+                    }
+                    me.cache = cache = data = null;
                 },
                 onBeforeEvent: function(event) {
                     var me = this;
@@ -1974,8 +2006,10 @@
                             }
                             delete me.parent;
                         }
-                        dom = null;
+                        console.log("destroyed! ", dom);
                         LIBCORE.clear(me);
+                        me.dom = dom = null;
+                        console.log(new Error("destroyed").stack);
                     }
                     return me;
                 }
@@ -2164,13 +2198,13 @@
             requires: [ "lib-dom" ],
             templateAttr: "data-template",
             constructor: Template,
-            onInitialize: function() {
-                var me = this, promises = arguments[2], template = me.component("lib-dom").attribute(me.templateAttr);
+            onInitialize: function(event) {
+                var me = this, template = me.component("lib-dom").attribute(me.templateAttr);
                 if (LIBCORE.string(template)) {
                     me.set("template.url", template);
-                    promises[promises.length] = TEMPLATE.get(template).then(function(data) {
+                    event.until(TEMPLATE.get(template).then(function(data) {
                         me.applyTemplate(data);
-                    });
+                    }));
                 }
             },
             applyTemplate: function(data) {

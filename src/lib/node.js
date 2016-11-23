@@ -78,7 +78,7 @@ function bindDescendants(element, parent, includeCurrent) {
         localBind = bind;
     var current;
     
-    if (includeCurrent !== false) {
+    if (includeCurrent === true) {
         localBind(dom);
     }
     
@@ -130,8 +130,8 @@ function eachChildren(element, callback, arg1, arg2, arg3, arg4, arg5) {
     for (current = dom; current;) {
         
         // go down 1 level if not binded or not skipped (return false)
-        if (getStat(element) !== bindedStat ||
-            callback(element, arg1, arg2, arg3, arg4, arg5) === false) {
+        if (getStat(current) !== bindedStat ||
+            callback(current, arg1, arg2, arg3, arg4, arg5) === false) {
             dom = current.firstChild;
             if (dom) {
                 depth++;
@@ -165,31 +165,11 @@ function onListenComponentListener(event, methodName, method, component) {
     var node = this;
     
     function boundToEvent(event) {
-        var promises = event.promises,
-            notNodeEvent = !event.isNodeEvent;
-        var result;
+        
+        decorateEvent(node, event);
+        
+        return method.call(component, event, node, []);
 
-        if (!LIBCORE.array(promises)) {
-            promises = [];
-        }
-
-        if (notNodeEvent || !event.monitored) {
-            if (!notNodeEvent) {
-                event.monitored = true;
-            }
-            node.onBeforeEvent(event);
-        }
-        
-        result = method.call(component, event, node, promises);
-        
-        if (notNodeEvent) {
-            asyncAfterNodeEvent(node,
-                            event,
-                            promises.length ?
-                                Promise.all(promises) : null);
-        }
-        
-        return result;
     }
     
     // assign node
@@ -265,7 +245,46 @@ function asyncAfterNodeEvent(node, event, promise) {
                 then(onAfterNodeEvent, onReject);
 }
 
+function decorateEvent(node, event) {
+    if (!LIBCORE.method(event.until)) {
+        event.until = untilResolved(node);
+    }
+}
 
+function untilResolved(node) {
+    
+    function resolveOrNot() {
+        var currentNode = node,
+            events = --currentNode.runningTasks;
+
+        // call node.onAfterProcess
+        if (!events && !currentNode.destroyed) {
+            currentNode.onAfterProcesses();
+        }
+        currentNode = null;
+    }
+    
+    function runTask(data) {
+        var CORE = LIBCORE,
+            P = Promise,
+            currentNode = node;
+        var running;
+
+        if (!currentNode.destroyed) {
+            
+            running = currentNode.runningTasks++;
+            
+            if (!running) {
+                currentNode.onBeforeProcesses();
+            }
+            currentNode = null;
+    
+            (CORE.method(data) ? new P(data) : P.resolve(data)).
+                then(resolveOrNot, resolveOrNot);
+        }
+    }
+    return runTask;
+}
 
 function Node(dom, parent) {
     var me = this,
@@ -325,6 +344,7 @@ function Node(dom, parent) {
 
 Node.prototype = {
     dom: null,
+    runningTasks: 0,
     stateChangeEvent: 'state-change',
     parentStateChangeEvent: 'parent-state-change',
     pendingEvents: 0,
@@ -356,6 +376,33 @@ Node.prototype = {
         
         return null;
     
+    },
+    
+    
+    onBeforeProcesses: function () {
+        var me = this;
+        
+        if (!me.destroyed) {
+            me.cache = LIBCORE.clone(me.data, true);
+            
+        }
+    },
+    
+    onAfterProcesses: function () {
+        var me = this,
+            data = me.data,
+            cache = me.cache;
+            
+        console.log('state change! ', !LIBCORE.compare(data, cache), data, cache);
+        
+        if (!me.destroyed && !LIBCORE.compare(data, cache)) {
+            me.dispatch(me.stateChangeEvent, {
+                    bubbles: false,
+                    data: data,
+                    cached: cache
+                });
+        }
+        me.cache = cache = data = null;
     },
     
     onBeforeEvent: function (event) {
@@ -515,9 +562,11 @@ Node.prototype = {
                 delete me.parent;
             }
             
+            console.log('destroyed! ', dom);
             // clear!
-            dom = null;
             LIBCORE.clear(me);
+            me.dom = dom = null;
+            console.log((new Error('destroyed')).stack);
         }
         
         
