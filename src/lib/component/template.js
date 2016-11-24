@@ -21,20 +21,17 @@ Template.prototype = LIBCORE.instantiate(BASE, {
             //promises = arguments[2],
             template = me.component("lib-dom").attribute(me.templateAttr);
         
-        //if (LIBCORE.string(template)) {
-        //    me.set('template.url', template);
-        //    promises[promises.length] = TEMPLATE.get(template).
-        //                                    then(function (data) {
-        //                                        me.applyTemplate(data);
-        //                                    });
-        //}
-        
         if (LIBCORE.string(template)) {
-            me.set('template.url', template);
+            
             event.until(TEMPLATE.get(template).
                             then(function (data) {
-                                me.applyTemplate(data);
-                            }));
+                                    me.applyTemplate(data);
+                                },
+                                function () {
+                                    me.applyTemplate("");
+                                }));
+            
+            me.set('template.url', template);
         }
 
     },

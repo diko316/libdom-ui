@@ -17,9 +17,6 @@ var LIBCORE = require('libcore'),
         destroy: destroy
     };
     
-function empty() {
-    
-}
 
 function stat(dom) {
     var type = dom.nodeType,
@@ -49,19 +46,10 @@ function stat(dom) {
 
 function bind(dom, parent) {
     var Class = Node;
-    var node;
-    
+
     switch (stat(dom)) {
     case STAT_CAN_BIND:
-        if (parent) {
-            empty.prototype = parent;
-            node = new empty();
-            Class.call(node, dom, parent);
-        }
-        else {
-            node = new Class(dom, parent);
-        }
-        return node;
+        return new Class(dom, parent || null);
     
     case STAT_BINDED:
         return true;
@@ -165,11 +153,8 @@ function onListenComponentListener(event, methodName, method, component) {
     var node = this;
     
     function boundToEvent(event) {
-        
         decorateEvent(node, event);
-        
-        return method.call(component, event, node, []);
-
+        method.call(component, event, node, []);
     }
     
     // assign node
@@ -228,30 +213,13 @@ function kickstart() {
     
 }
 
-function asyncAfterNodeEvent(node, event, promise) {
-    var P = Promise;
-    function onAfterNodeEvent() {
-        if (!node.destroyed) {
-            node.onAfterEvent(event);
-        }
-        return event;
-    }
-    function onReject(e) {
-        onAfterNodeEvent();
-        return P.reject(e);
-    }
-    
-    return (promise || Promise.resolve(event)).
-                then(onAfterNodeEvent, onReject);
-}
-
 function decorateEvent(node, event) {
     if (!LIBCORE.method(event.until)) {
-        event.until = untilResolved(node);
+        event.until = untilResolved(node, event);
     }
 }
 
-function untilResolved(node) {
+function untilResolved(node, event) {
     
     function resolveOrNot() {
         var currentNode = node,
@@ -262,6 +230,9 @@ function untilResolved(node) {
             currentNode.onAfterProcesses();
         }
         currentNode = null;
+        // cleanup
+        delete event.until;
+        
     }
     
     function runTask(data) {
@@ -279,9 +250,10 @@ function untilResolved(node) {
             }
             currentNode = null;
     
-            (CORE.method(data) ? new P(data) : P.resolve(data)).
-                then(resolveOrNot, resolveOrNot);
+            return (CORE.method(data) ? new P(data) : P.resolve(data)).
+                        then(resolveOrNot, resolveOrNot);
         }
+        return P.reject(data);
     }
     return runTask;
 }
@@ -301,6 +273,7 @@ function Node(dom, parent) {
     me.dom = dom;
     me.data = {};
     me.listened = {};
+    me.unresolvedTasks = [];
     
     // create dom-like properties
     if (parent) {
@@ -345,9 +318,9 @@ function Node(dom, parent) {
 Node.prototype = {
     dom: null,
     runningTasks: 0,
+    unresolvedTasks: null,
     stateChangeEvent: 'state-change',
     parentStateChangeEvent: 'parent-state-change',
-    pendingEvents: 0,
     parent: null,
     firstChild: null,
     lastChild: null,
@@ -384,102 +357,71 @@ Node.prototype = {
         
         if (!me.destroyed) {
             me.cache = LIBCORE.clone(me.data, true);
-            
         }
     },
     
     onAfterProcesses: function () {
         var me = this,
             data = me.data,
-            cache = me.cache;
-            
-        console.log('state change! ', !LIBCORE.compare(data, cache), data, cache);
+            cache = me.cache,
+            unresolved = me.unresolvedTasks,
+            childEvent = me.parentStateChangeEvent,
+            l = unresolved.length;
+        var child, message;
+        
+        // resolve all tasks
+        for (; l--; ) {
+            unresolved[0](true);
+            unresolved.splice(0, 1);
+        }
         
         if (!me.destroyed && !LIBCORE.compare(data, cache)) {
-            me.dispatch(me.stateChangeEvent, {
-                    bubbles: false,
-                    data: data,
-                    cached: cache
-                });
+            
+            
+            message = {
+                bubbles: false,
+                data: data,
+                old: cache
+            };
+            
+            // call state change
+            me.dispatch(me.stateChangeEvent, message);
+            
+            // dispatch to children
+            child = me.firstChild;
+            for (; child; child = child.nextSibling) {
+                me.dispatch(childEvent, message);
+            }
         }
         me.cache = cache = data = null;
-    },
-    
-    onBeforeEvent: function (event) {
-        var me = this;
-
-        if (!me.destroyed && event.type !== me.stateChangeEvent &&
-            0 === me.pendingEvents++) {
-            
-            // save current data for later comparison
-            //      in detecting state change
-            me.cache = LIBCORE.clone(me.data, true);
-            
-        }
-        
-    },
-    
-    onAfterEvent: function (event) {
-        var me = this,
-            data = me.data,
-            cache = me.cache,
-            stateChangeEvent = me.stateChangeEvent,
-            parentStateChangeEvent = me.parentStateChangeEvent;
-        var node, message;
-        
-        // check if there are changes in state data
-        if (!me.destroyed && event.type !== stateChangeEvent &&
-            0 === --me.pendingEvents && !LIBCORE.compare(data, cache)) {
-
-            delete me.cache;
-            message = {
-                    bubbles: false,
-                    data: data,
-                    cached: cache
-                };
-            me.dispatch(stateChangeEvent, message);
-            // notify children
-            for (node = me.firstChild; node; node = node.nextSibling) {
-                me.dispatch(parentStateChangeEvent, message);
-            }
-            
-            cache = null;
-        }
     },
     
     dispatch: function (event, message) {
         var me = this,
             CORE = LIBCORE,
             P = Promise,
-            async = asyncAfterNodeEvent;
-        var promises, listened, promise;
+            promise = null;
         
         if (CORE.string(event)) {
-            listened = CORE.contains(me.listened, event);
             message = CORE.object(message) ?
                             CORE.assign({}, message) : {};
             
-            message.promises = promises = [];
             message.isNodeEvent = true;
+            
+            // only queue resolver if components are listening
+            if (CORE.contains(me.listened, event)) {
+                promise = (new P(function (resolve) {
+                            var unresolved = me.unresolvedTasks;
+                            unresolved[unresolved.length] = resolve;
+                        }));
+            }
             
             event = LIBDOM.dispatch(me.dom, event, message);
             
-            message.promises = null;
-            
-            if (promises.length) {
-                promise = P.all(promises).
-                            then(function () {
-                                promises.splice(0, promises.length);
-                                event.promises = promises = null;
+            return promise ? promise.then(function () {
                                 return event;
-                            });
-            }
-            else {
-                event.promises = promises = null;
-                promise = P.resolve(event);
-            }
-            
-            return listened ? async(me, event, promise) : promise;
+                            }) :
+                            P.resolve(event);
         
         }
         
