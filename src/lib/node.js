@@ -215,46 +215,21 @@ function kickstart() {
 
 function decorateEvent(node, event) {
     if (!LIBCORE.method(event.until)) {
-        event.until = untilResolved(node, event);
+        event.until = untilResolved(node);
     }
 }
 
-function untilResolved(node, event) {
-    
-    function resolveOrNot() {
-        var currentNode = node,
-            events = --currentNode.runningTasks;
-
-        // call node.onAfterProcess
-        if (!events && !currentNode.destroyed) {
-            currentNode.onAfterProcesses();
-        }
-        currentNode = null;
-        // cleanup
-        delete event.until;
-        
-    }
+function untilResolved(node) {
     
     function runTask(data) {
-        var CORE = LIBCORE,
-            P = Promise,
-            currentNode = node;
-        var running;
+        var currentNode = node,
+            resolver = currentNode.until();
+        
+        Promise.resolve(data).
+            then(resolver, resolver);
 
-        if (!currentNode.destroyed) {
-            
-            running = currentNode.runningTasks++;
-            
-            if (!running) {
-                currentNode.onBeforeProcesses();
-            }
-            currentNode = null;
-    
-            return (CORE.method(data) ? new P(data) : P.resolve(data)).
-                        then(resolveOrNot, resolveOrNot);
-        }
-        return P.reject(data);
     }
+    
     return runTask;
 }
 
@@ -357,6 +332,7 @@ Node.prototype = {
         
         if (!me.destroyed) {
             me.cache = LIBCORE.clone(me.data, true);
+            
         }
     },
     
@@ -369,63 +345,131 @@ Node.prototype = {
             l = unresolved.length;
         var child, message;
         
-        // resolve all tasks
-        for (; l--; ) {
-            unresolved[0](true);
-            unresolved.splice(0, 1);
-        }
-        
-        if (!me.destroyed && !LIBCORE.compare(data, cache)) {
+        if (!me.destroyed) {
+            // resolve all tasks
+            for (; l--; ) {
+                unresolved[0](true);
+                unresolved.splice(0, 1);
+            }
             
+            if (!LIBCORE.compare(data, cache)) {
             
-            message = {
-                bubbles: false,
-                data: data,
-                old: cache
-            };
-            
-            // call state change
-            me.dispatch(me.stateChangeEvent, message);
-            
-            // dispatch to children
-            child = me.firstChild;
-            for (; child; child = child.nextSibling) {
-                me.dispatch(childEvent, message);
+                message = {
+                    bubbles: false,
+                    data: data,
+                    old: cache
+                };
+                
+                // call state change
+                me.dispatch(me.stateChangeEvent, message);
+                
+                // dispatch to children
+                child = me.firstChild;
+                for (; child; child = child.nextSibling) {
+                    me.dispatch(childEvent, message);
+                }
+                
+                
             }
         }
+        
         me.cache = cache = data = null;
+    },
+    
+    until: function () {
+        var me = this,
+            P = Promise;
+        var resolver;
+        
+        function onJobEnd() {
+            var node = me;
+            if (!(--node.runningTasks)) {
+                node.onAfterProcesses();
+            }
+        }
+        
+        function onRun(resolve) {
+            resolver = resolve;
+        }
+        
+        if (!(me.runningTasks++)) {
+            me.onBeforeProcesses();
+        }
+        
+        (new P(onRun)).then(onJobEnd, onJobEnd);
+        
+        return resolver;
+    
+    },
+    
+    publish: function (event, message) {
+        var me = this,
+            P = Promise;
+        var promises, promise, pl, node, resolver;
+        
+        if (!me.destroyed && LIBCORE.string(event)) {
+            
+            if (event !== me.parentStateChangeEvent &&
+                event !== me.stateChangeEvent) {
+                resolver = me.until();
+            }
+            
+            pl = 1;
+            promises = [me.dispatch(event, message)];
+            
+            for (node = me.firstChild; node; node = node.nextSibling) {
+                promises[pl++] = node.publish(event, message);
+            }
+            
+            promise = P.all(promises);
+            
+            if (resolver) {
+                resolver(promise);
+            }
+            
+        }
+        else {
+            promise = P.reject("Node not available");
+        }
+        
+        resolver(promise);
+        
+        return promise;
+        
     },
     
     dispatch: function (event, message) {
         var me = this,
             CORE = LIBCORE,
             P = Promise,
-            promise = null;
+            promise = null,
+            resolver = null;
+            //resolver = me.until();
         
         if (CORE.string(event)) {
+            if (event !== me.parentStateChangeEvent &&
+                event !== me.stateChangeEvent) {
+                resolver = me.until();
+            }
             message = CORE.object(message) ?
                             CORE.assign({}, message) : {};
             
             message.isNodeEvent = true;
             
-            // only queue resolver if components are listening
-            if (CORE.contains(me.listened, event)) {
-                promise = (new P(function (resolve) {
-                            var unresolved = me.unresolvedTasks;
-                            unresolved[unresolved.length] = resolve;
-                        }));
-            }
-            
             event = LIBDOM.dispatch(me.dom, event, message);
             
-            return promise ? promise.then(function () {
-                                return event;
-                            }) :
-                            P.resolve(event);
-        
+            promise = P.resolve(event);
+            
+            if (resolver) {
+                resolver(promise);
+            }
+
+        }
+        else {
+            promise = P.reject("Invalid [event] parameter.");
         }
         
-        return P.reject("Invalid [event] parameter.");
+        return promise;
     },
     
     bindChildren: function () {
@@ -504,11 +548,11 @@ Node.prototype = {
                 delete me.parent;
             }
             
-            console.log('destroyed! ', dom);
+            
             // clear!
             LIBCORE.clear(me);
             me.dom = dom = null;
-            console.log((new Error('destroyed')).stack);
+            
         }
         
         
