@@ -1,6 +1,6 @@
-FROM diko316/alnode
+FROM diko316/alnode:v2.1
 
-EXPOSE 8000
+EXPOSE 3000
 
 COPY . $PROJECT_ROOT
 

@@ -4,7 +4,7 @@ services:
 
   libdom_ui:
     build: .
-    image: libdom-ui:latest
+    image: libdom-ui
     container_name: "libdom-ui-test"
     hostname: libdom
     command: bin/run-devserver.sh
@@ -16,7 +16,7 @@ services:
       - "3000:3000"
       
   libdom_ui_builder:
-    image: libdom-ui:latest
+    image: libdom-ui
     container_name: "libdom-ui-builder"
     command: bin/autosync-builds.sh
     
