@@ -15,7 +15,8 @@ module.exports = {
     entry: entry,
     output: {
         filename: '[name].js',
-        path: PATH.join(ROOT_PATH, 'dist'),
+        //path: PATH.join(ROOT_PATH, 'dist'),
+        path: PATH.join(ROOT_PATH, 'test', 'assets'),
         publicPath: '/assets/',
         library: LIB_NAME,
         libraryTarget: 'umd',
