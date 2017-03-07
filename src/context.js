@@ -1,5 +1,6 @@
 'use strict';
 
+var LIBDOM = require("libdom");
 var ROOT;
 
 
@@ -38,9 +39,35 @@ Context.prototype = {
     last: null,
     previous: null,
     next: null,
+    dom: null,
     vm: {},
     
     constructor: Context,
+    
+    bind: function (dom) {
+        if (LIBDOM.is(dom, 1)) {
+            this.unbind();
+            
+            this.dom = dom;
+        }
+        
+        return this;
+    },
+    
+    unbind: function () {
+        var dom = this.dom;
+        
+        if (dom) {
+            
+            
+            
+        }
+        
+        dom = null;
+        delete this.dom;
+        
+        return this;
+    },
     
     add: function (before) {
         var me = this,

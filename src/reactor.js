@@ -14,10 +14,8 @@ function register(name, callback) {
         throw new Error('Invalid Reactor [callback] parameter.');
     }
     
-    
-    
-    
-    
+    REGISTRY.set(name, callback);
+
 }
 
 module.exports = {
