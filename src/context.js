@@ -1,6 +1,8 @@
 'use strict';
 
-var LIBDOM = require("libdom");
+var LIBDOM = require("libdom"),
+    LIBCORE = require("libcore"),
+    CONTEXTS = [];
 var ROOT;
 
 
@@ -21,12 +23,25 @@ function createVm(parent) {
     return instance;
 }
 
+function getContext(id) {
+    var list = CONTEXTS;
+    id = parseInt(id, 10);
+    
+    return LIBCORE.number(id) && id in list ? list[id] : null;
+}
+
 
 function Empty() {
     
 }
 
 function Context(parent) {
+    var list = CONTEXTS,
+        id = list.length;
+        
+    this.index = id;
+    list[id] = this;
+    
     if (parent) {
         this.parent = parent;
         this.vm = createVm(parent);
@@ -34,6 +49,7 @@ function Context(parent) {
 }
 
 Context.prototype = {
+    index: -1,
     parent: null,
     first: null,
     last: null,
@@ -44,34 +60,9 @@ Context.prototype = {
     
     constructor: Context,
     
-    bind: function (dom) {
-        if (LIBDOM.is(dom, 1)) {
-            this.unbind();
-            
-            this.dom = dom;
-        }
-        
-        return this;
-    },
-    
-    unbind: function () {
-        var dom = this.dom;
-        
-        if (dom) {
-            
-            
-            
-        }
-        
-        dom = null;
-        delete this.dom;
-        
-        return this;
-    },
-    
     add: function (before) {
         var me = this,
-            instance = new Context(me),
+            child = new Context(me),
             first = me.first,
             last = me.last;
         var after;
@@ -85,26 +76,26 @@ Context.prototype = {
             // after
             after = before.after;
             if (after) {
-                instance.after = after;
-                after.before = instance;
+                child.after = after;
+                after.before = child;
             }
             
             // before
-            before.after = instance;
-            instance.before = before;
+            before.after = child;
+            child.before = before;
             
             // unset last
             if (last === before) {
-                last = instance;
+                last = child;
             }
             
         }
         
         // reconnect parent
-        me.first = first || instance;
-        me.last = last || instance;
+        me.first = first || child;
+        me.last = last || child;
         
-        return instance;
+        return child;
     },
     
     remove: function (child) {
@@ -141,6 +132,8 @@ Context.prototype = {
             delete child.next;
             delete child.parent;
             
+            return child;
+            
         }
         
         return null;
@@ -157,5 +150,6 @@ Context.prototype.root = ROOT;
 
 module.exports = {
     is: isContext,
-    root: ROOT
+    root: ROOT,
+    get: getContext
 };
