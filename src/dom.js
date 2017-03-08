@@ -2,7 +2,6 @@
 
 var LIBDOM = require('libdom'),
     LIBCORE = require('libcore'),
-    ATTRIBUTE_NAME = 'data-libvm',
     DATA_ATTR_RE = /^data\-(.+)$/,
     ROLE_ATTR_RE = /[ \r\n\t\s]+/,
     TRIM_RE = /^\s+|\s+$/g;
@@ -109,18 +108,20 @@ function setRoles(dom, newRoles) {
     var role, roles, total, c, l, al;
     
     if (isString(newRoles)) {
-        newRoles = Array.prototype.slice.call(arguments, 0);
+        newRoles = Array.prototype.slice.call(arguments, 1);
     }
     
     if (core.array(newRoles)) {
         roles = getRoles(dom, false);
         total = roles.length;
         al = 0;
+        
         for (c = -1, l = newRoles.length; l--;) {
             role = newRoles[++c];
             if (isString(role)) {
                 role = uncamelize(camelize(role));
-                if (roles.indexOf(role) !== -1) {
+
+                if (roles.indexOf(role) === -1) {
                     roles[total++] = applied[al++] = role;
                 }
             }

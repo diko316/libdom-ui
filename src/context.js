@@ -42,6 +42,9 @@ function Context(parent) {
     this.index = id;
     list[id] = this;
     
+    this.components = [];
+    this.instances = {};
+    
     if (parent) {
         this.parent = parent;
         this.vm = createVm(parent);
@@ -56,9 +59,109 @@ Context.prototype = {
     previous: null,
     next: null,
     dom: null,
+    mounted: null,
+    components: null,
+    instances: null,
     vm: {},
     
     constructor: Context,
+    
+    bind: function (dom, components) {
+        var list = this.components,
+            instances = this.instances,
+            vm = this.vm;
+        var c, l, name, Class;
+        
+        this.unbind();
+        
+        this.dom = dom;
+
+        // bind components
+        for (c = -1, l = components.length; l--;) {
+            Class = components[++c];
+            name = Class.prototype.type;
+            list[c] = name;
+            vm[name] = instances[name] = new Class(vm);
+            
+        }
+        
+        return this;
+    },
+    
+    unbind: function () {
+        var dom = this.dom,
+            components = this.components,
+            instances = this.instances,
+            vm = this.vm;
+        var c, l, name, component;
+        
+        if (dom) {
+            this.call('unmount');
+            
+            // destroy component
+            this.call('destroy');
+            
+            // unset vm and instances
+            for (c = -1, l = components.length; l--;) {
+                name = components[++c];
+                component = instances[name];
+                
+                if (name in vm && vm[name] === component) {
+                    delete vm[name];
+                }
+                
+                delete instances[name];
+            }
+            
+            components.splice(0, components.length);
+            
+        }
+        
+        this.dom = dom = null;
+        
+        return this;
+    },
+    
+    mount: function () {
+        
+    },
+    
+    unmount: function () {
+        
+    },
+    
+    call: function (action) {
+        var components = this.components,
+            instances = this.instances,
+            isFunction = LIBCORE.method,
+            c = -1,
+            l = components.length,
+            eventObject = {
+                vm: this.vm,
+                returnValue: void(0)
+            };
+        var component, args, method;
+        
+        if (LIBCORE.string(action)) {
+            args = Array.prototype.slice.call(arguments, 0);
+            args[0] = eventObject;
+            for (; l--;) {
+                component = instances[components[++c].prototype.type];
+                if (action in component &&
+                    isFunction(method = component[action])) {
+                    try {
+                        method.apply(component, args);
+                    }
+                    catch (e) {
+                        console.warn(e);
+                    }
+                }
+            }
+        }
+        
+        return eventObject.returnValue;
+        
+    },
     
     add: function (before) {
         var me = this,
