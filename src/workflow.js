@@ -1,28 +1,32 @@
 'use strict';
 
+var CONTEXT = require('./context.js'),
+    DOM = require('./dom.js');
 
 
 
 
 
-/**
- * Called after element is discovered having component
- */
-function register(element) {
-    
+
+
+
+function bind(dom, context) {
+    console.log('binding ', dom, ' and ', context);
 }
 
-/**
- * Called before element is destroyed
- */
-function unregister() {
+function start() {
+    var dom = global.document.documentElement;
     
+    DOM.setRoles(dom, 'application');
+    
+    bind(dom, CONTEXT.root);
+    
+    dom = null;
+
 }
 
 
 module.exports = {
-    
-    register: register,
-    unregister: unregister
-
+    bind: bind,
+    start: start
 };

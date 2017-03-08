@@ -1,16 +1,17 @@
 'use strict';
 
 var LIBDOM = require("libdom");
-var REACTOR;
+var WORKFLOW;
 
 // from here it is now safe to load browser modules
 if (LIBDOM.info.browser) {
     
     
-    REACTOR = require("./reactor.js");
+    WORKFLOW = require("./workflow.js");
+    
+    WORKFLOW.start();
     
     
-    //REACTOR.bindRoot(global.document.documentElement);
     
 }
 

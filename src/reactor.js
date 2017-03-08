@@ -2,8 +2,6 @@
 
 var LIBCORE = require('libcore'),
     LIBDOM = require('libdom'),
-    CONTEXT = require('./context.js'),
-    DOM = require('./dom.js'),
     REGISTRY = LIBCORE.createRegistry(),
     DATA_ATTR_RE = /^data\-(.+)$/;
 
@@ -58,54 +56,7 @@ function getReactors(dom) {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-function bindRoot(dom) {
-    
-    var D = DOM,
-        context = D.link(dom, CONTEXT.root);
-    
-    // bind dom
-    if (context) {
-    
-        // bind children
-        D.children(dom, bindDescendant, [context]);
-        
-    }
-    
-    return context;
-    
-}
-
-function bindDom(dom, context) {
-    context = DOM.link(dom, context);
-    
-    return context;
-}
-
-function bindDescendant(dom, context) {
-    
-    var child = context.add();
-    
-    bindDom(dom, child);
-    
-    console.log('bind! ', dom, ' context: ', child);
-    
-    return true;
-}
-
-
-
 module.exports = {
     register: register,
-    list: getReactors,
-    bindRoot: bindRoot
+    list: getReactors
 };

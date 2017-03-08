@@ -14,6 +14,13 @@ function isChild(parent, node) {
     return isContext(node) && node.parent !== parent;
 }
 
+function getContext(id) {
+    var list = CONTEXTS;
+    id = parseInt(id, 10);
+    
+    return LIBCORE.number(id) && id in list ? list[id] : null;
+}
+
 function createVm(parent) {
     var instance;
     
@@ -21,13 +28,6 @@ function createVm(parent) {
     instance = new Empty();
     
     return instance;
-}
-
-function getContext(id) {
-    var list = CONTEXTS;
-    id = parseInt(id, 10);
-    
-    return LIBCORE.number(id) && id in list ? list[id] : null;
 }
 
 
