@@ -76,6 +76,34 @@ var LIBDOM = require('libdom'),
 //    
 //}
 
+function eachAttribute(dom, callback) {
+    var attr = dom.attributes,
+        core = LIBCORE,
+        camelize = core.camelize,
+        isString = core.string,
+        dataRe = DATA_ATTR_RE,
+        c = -1,
+        l = attr.length,
+        args = Array.prototype.slice.call(arguments, 2);
+    var item, orig, value;
+    
+    for (; l--;) {
+        item = attr[++c];
+        orig = item.name;
+        value = item.value;
+
+        callback.apply(null, args.concat([ // name
+                                            camelize(dataRe.test(orig) ?
+                                                orig.match(dataRe)[1] : orig),
+                                            // value
+                                            isString(value) ? value : null,
+                                            // original name
+                                            orig
+                                        ]));
+        
+
+    }
+}
 
 
 function getRoles(dom, camelized) {
@@ -189,6 +217,7 @@ module.exports = {
     //link: link,
     //unlink: unlink,
     //attributes: attributes,
+    eachAttribute: eachAttribute,
     getRoles: getRoles,
     setRoles: setRoles,
     children: eachChildren
