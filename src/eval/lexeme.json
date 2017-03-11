@@ -1,0 +1,25 @@
+{
+    "production": {
+        "Factor": [
+            "Factor '+' Term"
+        ],
+        "Term": [
+            "Term '+' Atom",
+            "Term '-' Atom",
+            "Atom"
+        ],
+        "Atom": [
+            "integer",
+            "float",
+            "identifier",
+            "string"
+        ]
+    },
+    "state": {
+        "start": {}
+    },
+    "reduce": {
+        
+    }
+    
+}
