@@ -35,7 +35,7 @@ function transpile(expr) {
     var id, str;
     
     console.log('expr: ', expr);
-    
+    // parse
     for (; token;) {
         //console.log('token ', token);
         id = token[0];
@@ -76,7 +76,6 @@ function tokenize(expr, from, len) {
         next = from + 1,
         map = TOKEN.state,
         ends = TOKEN.token,
-        identifierRe = IDENTIFIER_RE,
         state = 'start',
         current = map.start,
         token = null,
@@ -106,15 +105,6 @@ function tokenize(expr, from, len) {
         if (state in ends) {
             token = ends[state];
             next = buffered ? c : c - 1;
-            if (token === 'extra' &&
-                identifierRe.test(expr.substring(from, next))) {
-                token = 'identifier';
-                
-                if (expr.charAt(next) === '(') {
-                    token = 'function';
-                    next++;
-                }
-            }
         }
         
         if (!proceed) {

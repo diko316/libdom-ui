@@ -1,19 +1,36 @@
 {
     "production": {
-        "Factor": [
-            "Factor '+' Term"
-        ],
+        
+        "Expr": [
+                    
+                ],
+        
         "Term": [
-            "Term '+' Atom",
-            "Term '-' Atom",
-            "Atom"
-        ],
+                    "Term + Factor",
+                    "Term - Factor",
+                    "Factor"
+                ],
+        
+        "Factor": [
+                    "Factor * Atom",
+                    "Factor / Atom",
+                    "Atom"
+                ],
+        
+        "FunctionCall": [
+                    "identifier ( FunctionArguments )"
+                ],
+        
+        "FunctionArguments": [
+                ],
+        
         "Atom": [
-            "integer",
-            "float",
-            "identifier",
-            "string"
-        ]
+                    "integer",
+                    "float",
+                    "identifier",
+                    "string",
+                    "FunctionCall"
+                ]
     },
     "state": {
         "start": {}
