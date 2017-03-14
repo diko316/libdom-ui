@@ -1,36 +1,56 @@
 {
     "production": {
         
-        "Expr": [
-                    
+        "Statement": [
+                    "Expr $"
                 ],
         
-        "Term": [
-                    "Term + Factor",
-                    "Term - Factor",
+        "Expr": [
                     "Factor"
                 ],
         
         "Factor": [
-                    "Factor * Atom",
-                    "Factor / Atom",
-                    "Atom"
+                    "Factor - Term",
+                    "Factor + Term",
+                    "Term"
                 ],
         
-        "FunctionCall": [
-                    "identifier ( FunctionArguments )"
+        "Term": [
+                    "Term / Unit",
+                    "Term * Unit",
+                    "Unit"
                 ],
         
-        "FunctionArguments": [
-                ],
-        
-        "Atom": [
+        "Unit": [
+                    "( Expr )",
+                    "Function",
                     "integer",
                     "float",
-                    "identifier",
                     "string",
-                    "FunctionCall"
+                    "true",
+                    "false",
+                    "identifier",
+                    "identifier . identifier",
+                    "identifier [ string ]",
+                    "identifier [ number ]"
+                ],
+        
+        "Array": [
+                    "[ Arguments ]",
+                    "[ ]"
+                ],
+        
+        "Function": [
+                    "identifier ( Arguments )",
+                    "identifier ( )"
+                ],
+        
+        "Arguments": [
+                    "Arguments , Expr",
+                    "Array",
+                    "Expr"
                 ]
+        
     },
     "state": {
         "start": {}

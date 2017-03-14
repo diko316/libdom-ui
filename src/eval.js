@@ -82,6 +82,10 @@ function tokenize(expr, from, len) {
         proceed = true;
     var chr, catchAll, contains, not, notChr, buffered;
     
+    if (from === l) {
+        return ["$", "", l + 1];
+    }
+
     for (; l--;) {
        
         chr = expr.charAt(c++);
