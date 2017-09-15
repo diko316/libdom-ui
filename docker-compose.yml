@@ -2,31 +2,33 @@ version: '2'
 
 services:
 
-  libdom_ui:
+  server:
     build: .
     image: libdom-ui
     container_name: "libdom-ui-test"
-    hostname: libdom
+    hostname: libdom-ui
     command: bin/run-devserver.sh
 
     volumes:
      - .:/opt/app-source:ro
 
     ports:
-      - "8000:3000"
+      - "3000:3000"
       
-  libdom_ui_builder:
+  builder:
     image: libdom-ui
     container_name: "libdom-ui-builder"
     command: bin/autosync-builds.sh
     
     environment:
-     - BUILD_MODE=production
+     - BUILD_MODE=development
      - SOURCE_MOD_PATH=/opt/app-source-modification
   
     volumes:
+      - ./docs:/opt/app/docs
       - ./dist:/opt/app/dist
       - .:/opt/app-source:ro
       - .:/opt/app-source-modification:rw
+      
 
 
