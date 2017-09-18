@@ -2,7 +2,8 @@
 
 import {
             setAsync,
-            middleware
+            middleware,
+            array
         } from "libcore";
 
 import {
@@ -12,14 +13,15 @@ import {
 
 
 var HANDLERS = [],
+    UNREGISTERS = [],
     RUN_SESSION = null,
     RUN_ON_START = false,
     EVENT_MIDDLEWARE = middleware('libdom.event'),
-    RUN_NO_MORE = false,
     STATUS = {
         debug: false,
         running: false,
-        ready: false
+        ready: false,
+        ended: false
     };
 
 function onDOMEventDispatch() {
@@ -41,6 +43,16 @@ function onDOMReady() {
     
 }
 
+function onSessionEnd() {
+    var list = UNREGISTERS;
+    var l;
+
+    stop();
+    for (; l--;) {
+        list[l]();
+    }
+}
+
 // add libdom event middleware register
 EVENT_MIDDLEWARE.register('dispatch', onDOMEventDispatch);
 on(global.window, 'load', onDOMReady);
@@ -48,7 +60,7 @@ on(global.window, 'load', onDOMReady);
 
 
 // stop event all loops
-destructor(() => stop());
+destructor(onSessionEnd);
 
 
 export {
@@ -56,7 +68,7 @@ export {
     };
 
 export
-    function register(handler, scope) {
+    function register(handler, scope, args) {
         var handlers = HANDLERS,
             currentlyRunning = RUN_SESSION,
             index = handlers.length,
@@ -65,16 +77,19 @@ export
         var queue;
 
         function run() {
-            if (!removed) {
-                try {
-                    handler.apply(context, arguments);
-                }
-                catch (e) {
-                    if (STATUS.debug) {
-                        console.warn(e);
-                    }
+            if (removed) {
+                return;
+            }
+            
+            try {
+                return handler.apply(context, args);
+            }
+            catch (e) {
+                if (STATUS.debug) {
+                    console.warn(e);
                 }
             }
+            return true;
         }
 
         function unregister() {
@@ -91,13 +106,16 @@ export
             index = list.indexOf(target);
             if (index !== -1) {
                 list.splice(index, 1);
+                UNREGISTERS.splice(index, 1);
             }
 
-            context = null;
+            args.splice(0, args.length);
+            args = context = null;
 
         }
-
+        args = array(args) ? args.slice(0) : [];
         handlers[index] = run;
+        UNREGISTERS[index] = unregister;
         context = scope === undefined ? null : scope;
 
         // enqueue if there is currently running instance
@@ -113,16 +131,17 @@ export
     function run(forceQueue) {
         var current = RUN_SESSION,
             started = !!current,
-            list = HANDLERS;
+            list = HANDLERS,
+            status = STATUS;
         var total, c, l, queue;
 
         // do not run if already destroyed
-        if (RUN_NO_MORE) {
+        if (status.ended) {
             return;
 
         // do not run if not ready
         }
-        else if (!STATUS.ready) {
+        else if (!status.ready) {
             RUN_ON_START = true;
             return;
 
@@ -134,6 +153,7 @@ export
             }
             return;
         }
+        
 
         RUN_SESSION = current = {
             stop: false,
@@ -143,11 +163,15 @@ export
 
         total = queue.length;
 
-        for (; total;) {
+        main: for (; total;) {
             c = -1;
 
             for (; l--;) {
                 queue[++c]();
+                if (status.ended) {
+                    stop();
+                    break main;
+                }
             }
 
             // remove
@@ -173,8 +197,13 @@ export
 export
     function stop() {
         var current = RUN_SESSION;
+        var queue;
 
         if (current) {
             current.stop = true;
+            
+            queue = current.queue;
+            queue.splice(0, queue.length);
+            RUN_SESSION = null;
         }
     }
