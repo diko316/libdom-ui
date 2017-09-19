@@ -2,7 +2,7 @@
 
 
 export default
-    class Control {
+    class BaseControl {
         constructor(node) {
             Object.defineProperty(this,
                                 '$',
