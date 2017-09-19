@@ -1,6 +1,7 @@
 'use strict';
 
-import Control from "./control.js";
+import State from "./state.js";
+
 import {
             clear
         } from "libcore";
@@ -10,7 +11,7 @@ class Node {
     constructor() {
         this.attribute = {};
         this.cache = {};
-        this.state = new Control(this);
+        this.state = new State(this);
         this.alive = true;
 
         this.dom =
