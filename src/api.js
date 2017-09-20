@@ -1,3 +1,3 @@
 'use strict';
 
-export * from "./lib/event/process.js";
+export { default as Packager } from "./lib/packager.js";

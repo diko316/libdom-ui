@@ -1,11 +1,14 @@
 'use strict';
 
-import CORE from "libcore";
+// import CORE from "libcore";
 
-import DOM from "../index.js";
+import UI from "../index.js";
 
-global.libcore = CORE;
+// global.libcore = CORE;
 
-export default DOM;
+// export default DOM;
+
+global.everything = UI;
 
 
+console.log("inside! ");

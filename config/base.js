@@ -1,6 +1,7 @@
 'use strict';
 
-let plugins = [
+let pkg = require('../package.json'),
+    plugins = [
         require('rollup-plugin-node-globals')(),
         require('rollup-plugin-node-builtins')(),
         require('rollup-plugin-node-resolve')({
@@ -45,10 +46,17 @@ let plugins = [
         }),
         require('rollup-plugin-buble')()
     ];
-    
+
+
 function configure(config, meta) {
         
-        var name = meta.name,
+        var camelize = require("libcore").camelize,
+            name = meta.name,
+            hasOwn = Object.prototype.hasOwnProperty,
+            optionalObject = pkg.optionalDependencies,
+            globals = {},
+            optionals = [],
+            ol = 0,
             umd = meta.umd = {
                     file: meta.target,
                     format: 'umd',
@@ -65,14 +73,27 @@ function configure(config, meta) {
                 sourcemap: true
             };
         
+        var access;
+        
+        //console.log("camelized ", camelize(name), " from ", name);
+
+        // fix externals
+        for (access in optionalObject) {
+            if (hasOwn.call(optionalObject, access)) {
+                optionals[ol++] =
+                    globals[access] = access;
+            }
+        }
+        
+        
         config.input = 'src/index.js';
         
         config.plugins = plugins;
         
         config.output = [umd, es];
         
-        config.external = meta.optionals;
-        config.globals = meta.globals;
+        config.external = optionals;
+        config.globals = globals;
 
         return config;
     }

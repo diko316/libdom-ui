@@ -2,7 +2,9 @@
 
 
 function augment(config) {
-    var output = config.output = {};
+    var output;
+    
+    output = config.output = {};
     
     config.input = 'src/demo.js';
     output.file = 'dist/demo.js';

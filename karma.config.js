@@ -86,7 +86,7 @@ module.exports = function(config) {
                 require('rollup-plugin-buble')()
             ],
             format: 'iife',
-            name: require('./package.json').name,
+            name: require("libcore").camelize(require('./package.json').name),
             sourcemap: 'inline'
         }
       
