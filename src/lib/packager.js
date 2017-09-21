@@ -80,7 +80,10 @@ export default
             var list = this.packages,
                 isString = string;
             var position, len, name, id, inserted, stack, total,
-                pack, requires, resolved, rl;
+                pack, requires, resolved, rl, recursed;
+            var maxcall = 50;
+
+            var rid = 0;
 
             if (isString(names)) {
                 names = [names];
@@ -106,7 +109,8 @@ export default
                     }
 
                 }
-
+                
+                recursed = {};
                 inserted = {};
                 stack = null;
                 position = -1;
@@ -114,7 +118,11 @@ export default
                 resolved = [];
                 rl = 0;
 
+
                 for (; len--;) {
+                    if (!--maxcall) {
+                        break;
+                    }
                     name = names[++position];
                     id = ':' + name;
                     pack = list[id];
@@ -122,63 +130,71 @@ export default
                     requires = pack.requires;
                     total = requires.length;
                     
-                    // should recurse
-                    if (total) {
-                        stack = {
-                            parent: stack,
-                            ender: name,
-                            c: position,
-                            l: len,
-                            items: names,
-                            rs: resolved
-                        };
-                        names = requires;
-                        len = total;
-                        position = -1;
-                        continue;
-                    }
-
-                    // leaf
-                    if (!(id in inserted)) {
-                        resolved[rl++] =
-                            inserted[id] = name;
+                    if (!(id in recursed)) {
+                        if (total) {
+                            recursed[id] = true;
+                            stack = {
+                                rid: ++rid,
+                                parent: stack,
+                                ender: name,
+                                c: position,
+                                l: len,
+                                items: names,
+                                rs: resolved
+                            };
+    
+                            names = requires;
+                            len = total;
+                            position = -1;
+                            resolved = [];
+                            rl = 0;
+                            
+                            continue;
+                        }
+                        // add leaf
+                        else if (!(id in inserted)) {
+                            resolved[rl++] =
+                                inserted[id] = name;
+                        }
                     }
 
                     // end?
                     if (!len) {
                         // pop
-                        for (; stack; stack = stack.parent) {
+                        for (; stack; ) {
+                            // pop!
                             len = stack.l;
                             name = stack.ender;
+                            position = stack.c;
+                            names = stack.rs;
+                            names.push.apply(names, resolved);
+                            resolved = names;
+                            names = stack.items;
+                            rl = resolved.length;
+
+                            stack = stack.parent;
+                            
 
                             // included ender
-                            resolved[rl++] = 
-                                inserted[':' + name] = name;
+                            id = ':' + name;
+                            if (!(id in inserted)) {
+                                resolved[rl++] = 
+                                    inserted[id] = name;
+                            }
 
-                            // break to continue
                             if (len) {
-                                position = stack.c;
-                                names = stack.rs;
-                                names.push.apply(names, resolved);
-                                resolved = names;
-                                names = stack.items;
-                                rl = resolved.length;
                                 break;
-
                             }
 
                         }
 
                     }
 
-
                 }
-
-
 
             }
 
-            
+            return resolved;
 
         }
     }
