@@ -2,6 +2,7 @@
 
 import {
             string,
+            array,
             clear,
             createRegistry
 
@@ -12,7 +13,12 @@ import {
             is
         } from "libdom";
 
-import State from "./node/state.js";
+import State from "./workspace/state.js";
+
+import {
+            instantiate,
+            elementRoles
+         } from "./control.js";
 
 
 let ID_GEN = 0;
@@ -30,7 +36,8 @@ class Node {
         this.cache = {};
         this.eventHandlers = [];
         this.state = new State(this);
-        this.controls = [];
+        this.controls = {};
+        this.initialized = false;
         this.alive = true;
         this.id = id;
         this.dom =
@@ -42,6 +49,17 @@ class Node {
             this.next = null;
 
         REGISTRY.set(id, this);
+    }
+
+    onInitialize(dom) {
+        // setup control
+        var roles = elementRoles(dom);
+        var c, l, role;
+
+        for (c = -1, l = roles.length; l--;) {
+            role = roles[++c];
+        }
+
     }
 
     onBind() {
@@ -70,7 +88,7 @@ class Node {
         clearObject(this);
     }
 
-    setupControl(role, instance) {
+    onSetupControl(role, instance) {
 
     }
 
@@ -81,8 +99,15 @@ class Node {
             // unbind old dom
             this.unbind();
 
+            // setup
             this.dom = dom;
             dom[ID_ATTR] = this.id;
+
+            if (!this.initialized) {
+                this.initialized = true;
+                this.onInitialize(dom);
+            }
+
             this.onBind(dom);
         }
         

@@ -7,46 +7,24 @@ import {
             createRegistry
         } from "libcore";
 
+import { Packager } from "libcore-package-resolver";
+
+import { elementRoles as domElementRoles } from "./helper/roles.js";
+
 import { isSubclassOf } from "./helper/class.js";
 
 import Base from "control/base.js";
 
-const REGISTRY = createRegistry(),
-        INVALID_NAME = "Invalid Control [role] parameter.",
+const INVALID_NAME = "Invalid Control [role] parameter.",
         INVALID_CLASS = "Invalid Control [Class] parameter.",
-        DEPENDENCIES = {};
-
-function resolveDependencies(roles) {
-    var has = contains,
-        registry = REGISTRY,
-        cache = DEPENDENCIES,
-        c = -1,
-        l = roles.length,
-        resolved = [],
-        ul = 0;
-    var role, dl;
-
-    for (; l--;) {
-        role = roles[++c];
-        
-        if (has(cache, role)) {
-            continue;
-        }
-        else if (!registry.exists(role)) {
-            throw new Error(`Role ${role} do not exist.`);
-        }
-
-    }
-
-}
+        REGISTRY = createRegistry(),
+        CONTROLS = new Packager();
 
 export
     function register(role, Class, dependencies) {
         var isString = string,
-            registry = REGISTRY,
-            cache = DEPENDENCIES,
-            has = contains;
-        var l, item, inside;
+            registry = REGISTRY;
+        var l, item;
 
         if (string(role)) {
             throw new Error(INVALID_NAME);
@@ -70,12 +48,57 @@ export
 
             }
 
+            CONTROLS.register(role, dependencies);
+
+        }
+        else {
+
+            CONTROLS.register(role);
         }
 
         registry.set(role, Class);
     }
 
 export
-    function instantiate(node, roles) {
-        roles = resolveDependencies(roles);
+    function exists(names) {
+        return CONTROLS.exists(names);
+    }
+
+export
+    function elementRoles(dom) {
+        var manager = CONTROLS,
+            roles = domElementRoles(dom);
+        var len;
+
+        // filter
+        if (array(roles)) {
+            for (len = roles.length; len--;) {
+                if (!manager.exists(roles[len])) {
+                    roles.splice(len, 1);
+                }
+            }
+
+            if (roles.length) {
+                return manager.flatten(roles);
+            }
+
+        }
+
+        return [];
+    }
+
+export
+    function instantiate(role, node) {
+        var registry = REGISTRY;
+        var Class;
+
+        if (!string(role) || !registry.exists(role)) {
+            return null;
+        }
+
+        Class = registry.get(role);
+
+        return new Class(node);
+        
+
     }
