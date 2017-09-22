@@ -1,6 +1,9 @@
 'use strict';
 
-import { on } from "libdom";
+import "./index.js";
+
+
+
 
 // import {
 //             register,

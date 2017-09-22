@@ -4,17 +4,22 @@ import { on } from "libdom";
 
 import { compile } from "./lib/node.js";
 
-var stopEvent;
-
-// initialize
+// initialize DOM when ready
 function onDOMReady() {
-    stopEvent();
-    stopEvent = null;
+    var root = global.document.documentElement;
 
-    compile(global.document.documentElement, true);
+    // compile root, or compile descendants
+    if (!compile(root, null)) {
+
+        compile(root, null, true);
+        
+    }
+
+    root = null;
+    
 }
 
-stopEvent = on(global.window, 'load', onDOMReady);
+on(global.window, 'load', onDOMReady);
 
 export {
             default as BaseControl

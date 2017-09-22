@@ -21,13 +21,16 @@ const INVALID_NAME = "Invalid Control [role] parameter.",
         REGISTRY = createRegistry(),
         CONTROLS = new Packager();
 
+// register base as "default"
+register('-default', Base);
+
 export
     function register(role, Class, dependencies) {
         var isString = string,
             registry = REGISTRY;
         var l, item;
 
-        if (string(role)) {
+        if (!string(role)) {
             throw new Error(INVALID_NAME);
         }
         else if (registry.exists(role)) {
@@ -102,7 +105,7 @@ export
 
         Class = registry.get(role);
 
-        return new Class(node, name);
+        return new Class(node, role, name);
         
 
     }

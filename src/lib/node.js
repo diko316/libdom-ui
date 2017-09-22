@@ -2,6 +2,7 @@
 
 import {
             string,
+            thenable,
             clear,
             createRegistry
 
@@ -11,8 +12,6 @@ import {
 import {
             is
         } from "libdom";
-
-import State from "./workspace/state.js";
 
 import {
             instantiate,
@@ -50,13 +49,53 @@ function isBound(dom) {
     return false;
 }
 
+function bind(dom, parent) {
+    var access = ID_ATTR;
+    var id, instance, item;
+
+    if (!is(dom, 1)) {
+        throw new Error(INVALID_DOM);
+    }
+
+    id = isBound(dom);
+    if (id) {
+        return id;
+    }
+
+    if (!isBindable(dom)) {
+        return null;
+    }
+
+    dom[access] = id = 'n' + (++ID_GEN);
+    instance = new Node(id);
+
+    // attach parent and resolve node relationships
+    if (parent) {
+        instance.parent = parent;
+        instance.root = parent.root || parent;
+
+        if (!parent.first) {
+            parent.first = instance;
+        }
+        else {
+            item = parent.last;
+            item.next = instance;
+            instance.previous = item;
+        }
+        parent.last = instance;
+    }
+
+    instance.bind(dom);
+    instance = null;
+
+    return id;
+
+}
+
 class Node {
 
     constructor(id) {
         this.attribute = {};
-        this.cache = {};
-        this.eventHandlers = [];
-        this.state = new State(this);
         this.controls = {};
         this.controlNames = [];
         this.initialized = false;
@@ -74,25 +113,91 @@ class Node {
     }
 
     onInitialize(dom) {
-        // setup control
+        
         var me = this,
-            camelify = camelize,
             controls = me.controls,
             names = me.controlNames,
+            pending = [],
             nl = 0,
             roles = elementControls(dom);
-        var c, l, role, name;
+        var c, l, role, name, instance;
+
+        // setup control
+        this.pendingControls = pending = [];
 
         for (c = -1, l = roles.length; l--;) {
             role = roles[++c];
-            name = camelify(role);
-            names[nl++] = name;
-            controls[name] = instantiate(role, me);
+            instance = instantiate(role, me);
+            name = instance.name;
+            controls[name] = instance;
+            names[nl++] =
+                pending[nl] = name;
         }
+
+        // prepare all controls
+        me.eachControl((control) => {
+            var result;
+
+            // initialize control
+            control.initialize();
+
+            result = control.prepare();
+
+            if (thenable(result)) {
+                result.
+                    then(() => this.onControlPrepared(control),
+                        (e) => {
+                            console.warn(e);
+                            this.destroy();
+                            throw new Error(e);
+                        });
+            }
+            else {
+                this.onControlPrepared(control);
+            }
+
+        });
 
     }
 
-    onBind() {
+    onControlPrepared(control) {
+        var list = this.pendingControls;
+        var index, dom;
+            
+        if (list) {
+            index = list.indexOf(control);
+
+            if (index !== -1) {
+                list.splice(index, 1);
+            }
+
+            if (!list.length) {
+                dom = this.dom;
+                if (dom) {
+                    this.onBind(dom);
+                }
+                this.pendingControls = false;
+            }
+        }
+    }
+
+    onDestroyController(control) {
+        control.destroy();
+        this.controls[control.name] = null;
+    }
+
+    onBind(dom) {
+        var len = 0,
+            roleAttrs = [];
+
+
+        // replace role attribute with new one
+        this.eachControl(control => control.applyRoleAria && roleAttrs[len++]);
+
+        if (len) {
+            dom.setAttribute('role', roleAttrs.join(' '));
+        }
+
 
     }
 
@@ -101,20 +206,67 @@ class Node {
     }
 
     onDestroy() {
-        var clearObject = clear;
+        var clearObject = clear,
+            me = this,
+            parent = me.parent,
+            next = me.next,
+            previous = me.previous,
+            pointer = me.first;
+
+        var names, child;
+
+        // destroy children
+        for (; pointer; ) {
+            child = pointer;
+            pointer = pointer.next;
+            child.destroy();
+        }
+
+
+        // unset controllers
+        if (me.initialized) {
+            me.eachControl(control => this.onDestroyController(control));
+            
+            // purge names
+            names = me.controlNames;
+            names.splice(0, names.length);
+            me.controls =
+                me.controlNames =
+                names = null;
+        }
 
         // unbind dom
-        this.unbind();
+        me.unbind();
+
+        // remove relationship
+        if (parent) {
+            if (previous) {
+                previous.next = next;
+            }
+            if (next) {
+                next.previous = previous;
+            }
+            
+            if (parent.first === me) {
+                parent.first = previous || next;
+            }
+
+            if (parent.last === me) {
+                parent.last = next || previous;
+            }
+        }
 
         // unset child
-        this.root =
-            this.parent =
-            this.first =
-            this.last =
-            this.previous =
-            this.next = null;
+        me.root =
+            me.parent =
+            me.first =
+            me.last =
+            me.previous =
+            me.next = 
+            parent = 
+            previous = 
+            next = null;
 
-        clearObject(this.cache);
         clearObject(this);
     }
 
@@ -130,7 +282,7 @@ class Node {
             };
 
         for (; l--;) {
-            if (handler(operation, controls[names[++c]]) === false) {
+            if (handler(controls[names[++c]], operation) === false) {
                 operation.returnValue = false;
                 break;
             }
@@ -152,12 +304,15 @@ class Node {
             this.dom = dom;
             dom[ID_ATTR] = this.id;
 
+            // bind later when ready
             if (!this.initialized) {
                 this.initialized = true;
                 this.onInitialize(dom);
+            
             }
-
-            this.onBind(dom);
+            else {
+                this.onBind(dom);
+            }
         }
         
         return this;
@@ -195,66 +350,25 @@ class Node {
 
 export { Node };
 
-
 export
-    function bind(dom) {
-        var access = ID_ATTR;
-        var id, instance;
-
-        if (!is(dom, 1)) {
-            throw new Error(INVALID_DOM);
-        }
-
-        id = isBound(dom);
-        if (id) {
-            return id;
-        }
-
-        if (!isBindable(dom)) {
-            return null;
-        }
-
-        dom[access] = id = 'n' + (++ID_GEN);
-        instance = new Node(id);
-        instance.bind(dom);
-        instance = null;
-
-        return id;
-
-    }
-
-export
-    function unbind(dom) {
-        var id = null;
-
-        if (!is(dom, 1)) {
-            throw new Error(INVALID_DOM);
-        }
-
-        id = isBound(dom);
-        if (id) {
-            REGISTRY.get(id).unbind();
-            return id;
-        }
-
-        return null;
-
-    }
-
-export
-    function compile(dom, descendantsOnly) {
+    function compile(dom, parent, descendantsOnly) {
         var apply = bind,
+            isDom = is,
             bindable = isBindable,
             depth = 0;
 
-        var current, node, binds, bl, id;
+        var current, node, binds, bl;
 
-        if (!is(dom, 1)) {
+        if (!isDom(dom, 1)) {
             throw new Error(INVALID_DOM);
         }
 
+        if (!isDom(parent, 1)) {
+            parent = null;
+        }
+
         if (descendantsOnly !== true) {
-            return apply(dom);
+            return apply(dom, parent);
 
         }
 
@@ -268,7 +382,7 @@ export
 
                 // bind descendant
                 if (depth && bindable(current)) {
-                    binds[bl++] = apply(current);
+                    binds[bl++] = apply(current, parent);
 
                 }
                 // go inside

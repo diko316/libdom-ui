@@ -1,8 +1,9 @@
 'use strict';
 
+
 export default
     class BaseControl {
-        constructor(node, name) {
+        constructor(node, role, name) {
             var O = Object;
 
             O.defineProperty(this,
@@ -15,6 +16,15 @@ export default
                             });
 
             O.defineProperty(this,
+                            'role',
+                            {
+                                enumerable: false,
+                                writable: false,
+                                configurable: false,
+                                value: role
+                            });
+
+            O.defineProperty(this,
                             'name',
                             {
                                 enumerable: false,
@@ -22,5 +32,33 @@ export default
                                 configurable: false,
                                 value: name
                             });
+            
+            this.applyRoleAria = false;
         }
+
+        initialize() {
+
+        }
+
+        prepare() {
+            // return a promise before calling prepare
+        }
+
+        mount() {
+
+        }
+
+        unmount() {
+
+        }
+
+
+        destroy() {
+
+        }
+
+
+        // easy access methods
+        
+
     }

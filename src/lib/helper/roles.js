@@ -2,10 +2,9 @@
 
 import {
             string,
+            trim,
             unionList
         } from "libcore";
-
-import { is } from "libdom";
 
 const ATTR_SPLIT_RE = /\s+/;
 
@@ -15,8 +14,12 @@ export
         var roles;
         
         if (string(subject)) {
-            roles = subject.split(ATTR_SPLIT_RE);
-            return unionList(roles, []);
+            subject = trim(subject);
+            
+            if (subject) {
+                roles = subject.split(ATTR_SPLIT_RE);
+                return unionList(roles, []);
+            }
         }
 
         return [];
