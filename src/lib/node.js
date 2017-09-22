@@ -3,8 +3,7 @@
 import {
             string,
             clear,
-            createRegistry,
-            camelize
+            createRegistry
 
         } from "libcore";
 
@@ -22,13 +21,12 @@ import {
 
 import {
             elementRoles
-        } from "./helper.roles.js";
+        } from "./helper/roles.js";
 
 
-let ID_GEN = 0;
+var ID_GEN = 0;
 
-const   ID_RE = /^n[1-9][0-9]*$/,
-        ID_ATTR = '__uid__$$',
+const   ID_ATTR = '__uid__$$',
         INVALID_DOM = "Invalid [dom] element parameter.",
         REGISTRY = createRegistry();
 
@@ -89,7 +87,7 @@ class Node {
             role = roles[++c];
             name = camelify(role);
             names[nl++] = name;
-            controls[name] = instantiate(name, me);
+            controls[name] = instantiate(role, me);
         }
 
     }
@@ -120,10 +118,6 @@ class Node {
         clearObject(this);
     }
 
-    onSetupControl(role, instance) {
-
-    }
-
     eachControl(handler) {
         var me = this,
             names = me.controlNames,
@@ -137,6 +131,7 @@ class Node {
 
         for (; l--;) {
             if (handler(operation, controls[names[++c]]) === false) {
+                operation.returnValue = false;
                 break;
             }
         }
@@ -203,8 +198,7 @@ export { Node };
 
 export
     function bind(dom) {
-        var registry = REGISTRY,
-            access = ID_ATTR;
+        var access = ID_ATTR;
         var id, instance;
 
         if (!is(dom, 1)) {
@@ -216,51 +210,35 @@ export
             return id;
         }
 
-        if (isBindable(dom)) {
-            
+        if (!isBindable(dom)) {
+            return null;
         }
 
-        id = access in dom ? dom[access] : null;
-        switch (true) {
-        // generate id
-        case !string(id) || !ID_RE.test(id):
-            dom[access] = id = 'n' + (++ID_GEN);
-        
-        // create
-        /* falls through */
-        case !registry.exists(id):
-            instance = new Node(id);
-            break;
-
-        default:
-            instance = registry.get(id);
-        }
-
+        dom[access] = id = 'n' + (++ID_GEN);
+        instance = new Node(id);
         instance.bind(dom);
         instance = null;
 
         return id;
+
     }
 
 export
     function unbind(dom) {
-        var registry = REGISTRY,
-            access = ID_ATTR;
         var id = null;
 
         if (!is(dom, 1)) {
             throw new Error(INVALID_DOM);
         }
 
-        if (access in dom) {
-            id = dom[access];
-            if (registry.exists(id)) {
-                registry.get(id).unbind();
-                return id;
-            }
+        id = isBound(dom);
+        if (id) {
+            REGISTRY.get(id).unbind();
+            return id;
         }
 
         return null;
+
     }
 
 export
@@ -268,19 +246,15 @@ export
         var apply = bind,
             bindable = isBindable,
             depth = 0;
-        var current, node, binds, bl;
+
+        var current, node, binds, bl, id;
 
         if (!is(dom, 1)) {
             throw new Error(INVALID_DOM);
         }
 
         if (descendantsOnly !== true) {
-            
-            if (bindable(dom)) {
-                return apply(dom);
-            }
-
-            return false;
+            return apply(dom);
 
         }
 
@@ -292,7 +266,7 @@ export
 
             if (current.nodeType === 1) {
 
-                // bind
+                // bind descendant
                 if (depth && bindable(current)) {
                     binds[bl++] = apply(current);
 
@@ -320,8 +294,9 @@ export
             current = node;
 
         }
+        
 
-        return binds;
+        return bl ? binds : null;
 
     }
 

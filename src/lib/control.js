@@ -3,13 +3,10 @@
 import {
             string,
             array,
-            contains,
+            camelize,
             createRegistry
         } from "libcore";
 
-import {
-            is
-        } from "libdom";
 
 import { Packager } from "libcore-package-resolver";
 
@@ -17,7 +14,7 @@ import { elementRoles as domElementRoles } from "./helper/roles.js";
 
 import { isSubclassOf } from "./helper/class.js";
 
-import Base from "control/base.js";
+import Base from "./control/base.js";
 
 const INVALID_NAME = "Invalid Control [role] parameter.",
         INVALID_CLASS = "Invalid Control [Class] parameter.",
@@ -95,15 +92,17 @@ export
 export
     function instantiate(role, node) {
         var registry = REGISTRY;
-        var Class;
+        var Class, name;
 
         if (!string(role) || !registry.exists(role)) {
             return null;
         }
 
+        name = camelize(role);
+
         Class = registry.get(role);
 
-        return new Class(node);
+        return new Class(node, name);
         
 
     }
