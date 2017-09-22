@@ -7,6 +7,10 @@ import {
             createRegistry
         } from "libcore";
 
+import {
+            is
+        } from "libdom";
+
 import { Packager } from "libcore-package-resolver";
 
 import { elementRoles as domElementRoles } from "./helper/roles.js";
@@ -66,9 +70,10 @@ export
 
 export
     function elementRoles(dom) {
-        var manager = CONTROLS,
-            roles = domElementRoles(dom);
-        var len;
+        var manager = CONTROLS;
+        var len, roles;
+
+        roles = domElementRoles(dom);
 
         // filter
         if (array(roles)) {

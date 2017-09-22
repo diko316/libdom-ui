@@ -2,9 +2,9 @@
 
 import {
             string,
-            array,
             clear,
-            createRegistry
+            createRegistry,
+            camelize
 
         } from "libcore";
 
@@ -17,8 +17,12 @@ import State from "./workspace/state.js";
 
 import {
             instantiate,
-            elementRoles
+            elementRoles as elementControls
          } from "./control.js";
+
+import {
+            elementRoles
+        } from "./helper.roles.js";
 
 
 let ID_GEN = 0;
@@ -28,6 +32,25 @@ const   ID_RE = /^n[1-9][0-9]*$/,
         INVALID_DOM = "Invalid [dom] element parameter.",
         REGISTRY = createRegistry();
 
+function isBindable(dom) {
+    var roles = elementRoles(dom);
+    return !!roles.length && roles;
+}
+
+
+function isBound(dom) {
+    var access = ID_ATTR;
+    var id;
+    
+    if (access in dom) {
+        id = access in dom[access];
+        if (string(id) && REGISTRY.exists(id)) {
+            return id;
+        }
+    }
+
+    return false;
+}
 
 class Node {
 
@@ -37,6 +60,7 @@ class Node {
         this.eventHandlers = [];
         this.state = new State(this);
         this.controls = {};
+        this.controlNames = [];
         this.initialized = false;
         this.alive = true;
         this.id = id;
@@ -53,11 +77,19 @@ class Node {
 
     onInitialize(dom) {
         // setup control
-        var roles = elementRoles(dom);
-        var c, l, role;
+        var me = this,
+            camelify = camelize,
+            controls = me.controls,
+            names = me.controlNames,
+            nl = 0,
+            roles = elementControls(dom);
+        var c, l, role, name;
 
         for (c = -1, l = roles.length; l--;) {
             role = roles[++c];
+            name = camelify(role);
+            names[nl++] = name;
+            controls[name] = instantiate(name, me);
         }
 
     }
@@ -89,6 +121,28 @@ class Node {
     }
 
     onSetupControl(role, instance) {
+
+    }
+
+    eachControl(handler) {
+        var me = this,
+            names = me.controlNames,
+            controls = me.controls,
+            c = -1,
+            l = names.length,
+            operation = {
+                node: me,
+                returnValue: undefined
+            };
+
+        for (; l--;) {
+            if (handler(operation, controls[names[++c]]) === false) {
+                break;
+            }
+        }
+
+        operation.node = null;
+        return operation.returnValue;
 
     }
 
@@ -146,6 +200,7 @@ class Node {
 
 export { Node };
 
+
 export
     function bind(dom) {
         var registry = REGISTRY,
@@ -154,6 +209,15 @@ export
 
         if (!is(dom, 1)) {
             throw new Error(INVALID_DOM);
+        }
+
+        id = isBound(dom);
+        if (id) {
+            return id;
+        }
+
+        if (isBindable(dom)) {
+            
         }
 
         id = access in dom ? dom[access] : null;
@@ -199,5 +263,66 @@ export
         return null;
     }
 
+export
+    function compile(dom, descendantsOnly) {
+        var apply = bind,
+            bindable = isBindable,
+            depth = 0;
+        var current, node, binds, bl;
+
+        if (!is(dom, 1)) {
+            throw new Error(INVALID_DOM);
+        }
+
+        if (descendantsOnly !== true) {
+            
+            if (bindable(dom)) {
+                return apply(dom);
+            }
+
+            return false;
+
+        }
+
+        binds = [];
+        bl = 0;
+
+        // bind descendants
+        for (current = dom; current;) {
+
+            if (current.nodeType === 1) {
+
+                // bind
+                if (depth && bindable(current)) {
+                    binds[bl++] = apply(current);
+
+                }
+                // go inside
+                else {
+                    node = current.firstChild;
+                    if (node) {
+                        depth++;
+                        current = node;
+                        continue;
+                    }
+                }
+
+            }
+
+            // go to next node
+            node = current.nextSibling;
+            
+            for (; !node && depth-- && current;) {
+                current = current.parentNode;
+                node = current.nextSibling;
+            }
+
+            current = node;
+
+        }
+
+        return binds;
+
+    }
 
 export default Node;

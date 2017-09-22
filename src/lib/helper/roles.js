@@ -24,7 +24,6 @@ export
 
 export
     function elementRoles(element) {
-        return parseRoles(
-                    is(element, 1) ?
-                        element.getAttribute('role') : []);
+        return parseRoles(element.getAttribute('lib:role'));
     }
+

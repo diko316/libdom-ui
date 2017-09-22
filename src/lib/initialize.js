@@ -1,13 +1,9 @@
 'use strict';
 
-
-
+import { compile } from "./node.js";
 
 function onDOMReady() {
-    bootstrap(global.document.documentElement);
+    compile(global.document.documentElement, true);
 }
-
-
-
 
 on(global.window, 'load', onDOMReady);
