@@ -6,13 +6,11 @@ import {
         
         } from "libdom";
 
-import { register } from "./role/registry.js";
+import Document from "./virtual/document.js";
 
-import { createContext } from "./process/linker.js";
+//import { createContext } from "./process/linker.js";
 
-import domControl from "./control/dom.js";
-
-import documentControl from "./control/document.js";
+import "./control/index.js";
 
 
 
@@ -22,7 +20,7 @@ var DOCUMENT = null;
 
 // initialize DOM when ready
 function onDOMReady() {
-    DOCUMENT = createContext(global.document);
+    DOCUMENT = new Document(global.document);
 }
 
 function onDOMDestroy() {
@@ -36,10 +34,7 @@ function onDOMDestroy() {
 }
 
 
-// register all mixins
-register('dom', domControl);
-register('document', documentControl,
-        ['dom']);
+
 
 
 on(global.window, 'load', onDOMReady);

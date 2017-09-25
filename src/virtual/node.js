@@ -2,8 +2,11 @@
 
 import { clear } from "libcore";
 
+import { is } from "libdom";
+
 import { generate } from "../core/id.js";
 
+import { link } from "../role/dom.js";
 
 export
     function getNodeType(type) {
@@ -33,6 +36,7 @@ export default
 
             this.objectId = generate('node');
             this.alive = true;
+            this.leafy = false;
 
             this.control = null;
             
@@ -48,11 +52,30 @@ export default
                 this.last = null;
         }
 
+        link(dom, roles) {
+            var instance;
+    
+            if (!is(dom, this.nodeType)) {
+                console.log(dom, dom.nodeType, ' for ', this.nodeType);
+                throw new Error("Invalid [dom] Node parameter.");
+            }
+
+            instance = link(this, roles);
+            instance.mount(dom);
+
+            return instance;
+        }
+
         add(node, before) {
             var parent = node.parent,
                 first = this.first,
                 last = this.last;
             var after;
+
+            // not allowed if node is leafy
+            if (this.leafy) {
+                return null;
+            }
 
             // unset parent
             if (parent) {
@@ -149,6 +172,8 @@ export default
 
                 clear(this);
             }
+
+            return this;
 
         }
 

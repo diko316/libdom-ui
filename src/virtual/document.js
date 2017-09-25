@@ -2,17 +2,29 @@
 
 import { createRegistry } from "libcore";
 
-import Node,
-        {
-            getNodeType
-        } from "./node.js";
+import { is } from "libdom";
+
+import { compile } from "../role/dom.js";
+
+import Node from "./node.js";
+
+import Element from "./element.js";
+
+import Text from "./text.js";
+
 
 export default
     class Document extends Node {
 
-        constructor() {
+        constructor(documentNode) {
             super(9);
             this.nodeList = createRegistry();
+
+            // link and mount
+            this.link(documentNode);
+
+            // mount dom from documentElement
+            compile(this, documentNode.documentElement);
         }
 
         onCreateNode(node) {
@@ -23,19 +35,36 @@ export default
             this.nodeList.unset(node.objectId);
         }
 
-        createNode(type) {
-            var node;
+        link(dom) {
 
-            if (!getNodeType(type)) {
-                throw new Error("Invalid node [type] parameter.");
+            if (!is(dom, 9)) {
+                throw new Error("Invalid [dom] Document Node parameter.");
             }
-            
-            node = new Node(type);
 
+            return super.link(dom, 'document');
+            
+        }
+
+        createElement() {
+            var node;
+            
+            node = new Element();
             node.root = this;
             this.onCreateNode(node);
 
             return node;
+            
+        }
+
+        createTextNode() {
+            var node;
+            
+            node = new Text();
+            node.root = this;
+            this.onCreateNode(node);
+
+            return node;
+            
         }
 
         destroyNode(node) {

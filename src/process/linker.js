@@ -72,10 +72,9 @@ export
                     if (roles) {
                         node = root.createNode(1);
                         parent.add(node);
+                        node.link(dom);
                         linkControl(node, roles).
                             mount(dom);
-
-                        console.log("gi mount! ", dom, ' sa ', node);
                     }
                 }
 
