@@ -1,34 +1,47 @@
 'use strict';
 
-import { on } from "libdom";
+import {
+            on,
+            destructor
+        
+        } from "libdom";
 
-import { compile } from "./lib/node.js";
+import { register } from "./role/registry.js";
+
+import { createContext } from "./process/linker.js";
+
+import domControl from "./control/dom.js";
+
+import documentControl from "./control/document.js";
+
+
+
+
+
+var DOCUMENT = null;
 
 // initialize DOM when ready
 function onDOMReady() {
-    var root = global.document.documentElement;
+    DOCUMENT = createContext(global.document);
+}
 
-    // compile root, or compile descendants
-    if (!compile(root, null)) {
+function onDOMDestroy() {
+    var doc = DOCUMENT;
 
-        compile(root, null, true);
-        
+    if (doc) {
+        doc.destroy();
     }
 
-    root = null;
-    
+    DOCUMENT = doc = null;
 }
+
+
+// register all mixins
+register('dom', domControl);
+register('document', documentControl,
+        ['dom']);
+
 
 on(global.window, 'load', onDOMReady);
 
-export {
-            default as BaseControl
-
-        } from "./lib/control/base.js";
-
-export {
-
-            register as registerControl,
-            exists as controlExists
-
-        } from "./lib/control.js";
+destructor(onDOMDestroy);
