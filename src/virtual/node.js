@@ -44,6 +44,7 @@ export default
 
             this.nodeName =
             this.nodeValue =
+            this.state =
             this.root =
                 this.parent =
                 this.before = 
@@ -56,11 +57,11 @@ export default
             var instance;
     
             if (!is(dom, this.nodeType)) {
-                console.log(dom, dom.nodeType, ' for ', this.nodeType);
                 throw new Error("Invalid [dom] Node parameter.");
             }
 
             instance = link(this, roles);
+            instance.initialize();
             instance.mount(dom);
 
             return instance;

@@ -12,6 +12,8 @@ import Element from "./element.js";
 
 import Text from "./text.js";
 
+import Comment from "./comment.js";
+
 
 export default
     class Document extends Node {
@@ -41,14 +43,12 @@ export default
                 throw new Error("Invalid [dom] Document Node parameter.");
             }
 
-            return super.link(dom, 'document');
+            return super.link(dom, 'lib-document');
             
         }
 
         createElement() {
-            var node;
-            
-            node = new Element();
+            var node = new Element();
             node.root = this;
             this.onCreateNode(node);
 
@@ -57,14 +57,21 @@ export default
         }
 
         createTextNode() {
-            var node;
-            
-            node = new Text();
+            var node = new Text();
             node.root = this;
             this.onCreateNode(node);
 
             return node;
             
+        }
+
+        createComment() {
+            var node = new Comment();
+
+            node.root = this;
+            this.onCreateNode(node);
+
+            return node;
         }
 
         destroyNode(node) {

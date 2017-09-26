@@ -11,10 +11,19 @@ import {
             resolve
         } from "./registry.js";
 
+import { domCommentExpression } from "../expression/dom.js";
+
 
 const   ROLE_ATTRIBUTE_NAME = 'ui:role',
         INVALID_DOM = "Invalid [dom] element parameter.",
-        SPLIT_RE = /\s+/;
+        SPLIT_RE = /\s+/,
+        EXPRESSION_COMMENT_RE = /^\?[a-z\_]+(\-[\_a-z]+)*\s+.+\s*\?$/ig;
+
+
+
+function isExpressionComment(dom) {
+    return EXPRESSION_COMMENT_RE.test(dom.nodeValue);
+}
 
 export
     function elementRoles(dom) {
@@ -51,7 +60,8 @@ export
 export
     function compile(parent, dom) {
         var isDom = is,
-            getRoles = elementRoles;
+            getRoles = elementRoles,
+            isCommentNode = isExpressionComment;
         var current, roles, node, root, depth;
 
         if (!isDom(dom, 1)) {
@@ -88,10 +98,19 @@ export
                 }
                 break;
 
-            case 3:
-                node = root.createTextNode();
-                parent.add(node);
-                node.link(current, 'text');
+            // case 3:
+            //     node = root.createTextNode();
+            //     parent.add(node);
+            //     node.link(current);
+            //     break;
+
+            case 8:
+                
+                if (domCommentExpression(current)) {
+                    node = root.createComment();
+                    parent.add(node);
+                    node.link(current);
+                }
             }
 
             // go to next node

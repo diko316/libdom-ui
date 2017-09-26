@@ -1,19 +1,16 @@
 'use strict';
 
 import {
-            on,
-            destructor
-        
-        } from "libdom";
+            browserReady,
+            browserEnd
+        } from "./event/index.js";
 
 import Document from "./virtual/document.js";
 
-//import { createContext } from "./process/linker.js";
-
 import "./control/index.js";
 
-
-
+// test
+import "./expression/parser.js";
 
 
 var DOCUMENT = null;
@@ -33,10 +30,12 @@ function onDOMDestroy() {
     DOCUMENT = doc = null;
 }
 
+browserReady(onDOMReady);
+
+browserEnd(onDOMDestroy);
 
 
-
-
-on(global.window, 'load', onDOMReady);
-
-destructor(onDOMDestroy);
+export {
+            browserReady,
+            browserEnd
+    };

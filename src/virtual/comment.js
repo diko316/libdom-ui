@@ -6,19 +6,19 @@ import Node from "./node.js";
 
 
 export default
-    class Text extends Node {
+    class Comment extends Node {
         constructor() {
-            super(3);
+            super(8);
             this.leafy = true;
         }
 
         link(dom) {
 
-            if (!is(dom, 3)) {
+            if (!is(dom, 8)) {
                 throw new Error("Invalid [dom] Text Node parameter.");
             }
 
-            return super.link(dom, 'lib-text');
+            return super.link(dom, 'lib-comment');
             
         }
     }

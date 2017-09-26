@@ -63,7 +63,15 @@ export
             isString = string,
             requires = DEPENDENCIES,
             noDependencies = true;
-        var l, total;
+        var l, total, len;
+
+        // allow array of arguments registration
+        if (array(role)) {
+            len = role.length;
+            dependencies = len > 2 ? role[2] : null;
+            mixin = len > 1 ? role[1] : null;
+            role = role[0];
+        }
 
         if (!isString(role)) {
             throw new Error(INVALID_NAME);
@@ -107,7 +115,7 @@ export
             classRegistry = CLASS_REGISTRY,
             registry = REGISTRY;
         var c, l, id, role;
-
+        
         roles = resolve(roles);
         if (!roles) {
             throw new Error("Invalid [roles] parameter.");
