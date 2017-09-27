@@ -1,30 +1,96 @@
 # Expression Grammar
 
+## Tokens
 
+### Javascript expression
 
-## Path expression
-property access
+#### Literals
 
 ```text
+string      ->  /\"(\\\"|[^\"])*\"/,
+                /\'(\\\'|[^\'])*\'/
 
+number      ->  /[\+\-]?[0-9]*\.?[0-9]+/
 
-/\[[^\]]+\]/
+null        ->  /null/
 
-/\[\"(\\\"|[^\"])+\"\]/
+undefined   ->  /undefined/
 
-/\[\'(\\\'|[^\'])+\'\]/
+boolean     ->  /true|false/
 
-/\[(0|[1-9][0-9]*)\]/
+typeof      ->  /typeof/
 
-/\.[^ \r\n\t\.\[]+/
+instanceof  ->  /instanceof/
 
+new         ->  /new/
 
 ```
+
+#### Operators
+
+```text
+property_access     ->  /\./
+
+comma               ->  /\,/
+
+not                 ->  /!/
+
+or                  ->  /\|\|/
+
+and                 ->  /&&/
+
+ternary_condition   ->  /\?/
+
+ternary_option      ->  /\:/
+
+greater_than        ->  /\>/
+
+greater_equal       ->  /\>\=/
+
+lesser_than         ->  /\</
+
+lesser_equal        ->  /\<\=/
+
+equal               ->  /\=\=/
+
+strict_equal        ->  /\=\=\=/
+
+unequal             ->  /!\=/
+
+strict_unequal      ->  /!\=\=/
+
+increment           ->  /\+\+/
+
+decrement           ->  /\-\-/
+
+add                 ->  /\+/
+
+subtract            ->  /\-/
+
+multiply            ->  /\*/
+
+divide              ->  /\//
+
+exponential         ->  /\*\*/
+
+modulo              ->  /\%/
+
+assign              ->  /\=/
+
+bracket_open        ->  /\[/
+
+bracket_close       ->  /\]/
+
+parenthesis_open    ->  /\(/
+
+parenthesis_close   ->  /\)/
+
+```
+
+### Path expression
 
 The path token
 
 ```text
-/^\@[^ \r\n\t\.\[]+(\.[^ \r\n\t\.\[]+|\[(0|[1-9][0-9]*)\]|\[\'(\\\'|[^\'])+\'\]|\[\"(\\\"|[^\"])+\"\]|\[[^\]]+\])*$/g
+/^\@[^ \r\n\t\.\[]+(\.[^ \r\n\t\.\[]+|\[\'(\\\'|[^\'])+\'\]|\[\"(\\\"|[^\"])+\"\]|\[[^\]]+\])*$/g
 ```
-
-
